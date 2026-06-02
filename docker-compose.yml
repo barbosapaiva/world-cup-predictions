@@ -1,4 +1,14 @@
 services:
+  api:
+    build: .
+    container_name: worldcup-api
+    env_file: .env
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+
   db:
     image: postgres:16-alpine
     container_name: worldcup-db
@@ -9,7 +19,7 @@ services:
       - pgdata:/var/lib/postgresql/data
       - ./sql/migrations:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-worldcup} -d ${POSTGRES_DB:-worldcup}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-worldcup} -d ${POSTGRES_DB:-worldcup_predictions}"]
       interval: 5s
       timeout: 3s
       retries: 5
