@@ -4,7 +4,6 @@ from uuid import UUID
 from pydantic import BaseModel, EmailStr
 
 
-# Request schemas
 class UserCreate(BaseModel):
     name: str
     email: EmailStr
@@ -17,7 +16,6 @@ class UserUpdate(BaseModel):
     is_active: bool | None = None
 
 
-# Response schemas
 class UserResponse(BaseModel):
     id: UUID
     name: str

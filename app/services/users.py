@@ -2,6 +2,7 @@ from uuid import UUID
 
 from fastapi import HTTPException, status
 
+from app.core.security import hash_password
 from app.models.users import User
 from app.repositories.users import UserRepository
 from app.schemas.users import UserCreate, UserUpdate
@@ -24,7 +25,7 @@ class UserService:
         user = User(
             name=data.name,
             email=email,
-            password_hash=self._hash_password(data.password),
+            password_hash=hash_password(data.password),
         )
 
         return await self.repository.create(user)
@@ -61,7 +62,3 @@ class UserService:
             setattr(user, field, value)
 
         return await self.repository.update(user)
-
-    def _hash_password(self, password: str) -> str:
-        # Temporary placeholder. Replace with bcrypt/passlib later.
-        return f"hashed_{password}"
