@@ -1,18 +1,19 @@
-import enum
+from enum import StrEnum
 
-class UserRole(str, enum.Enum):
+
+class UserRole(StrEnum):
     ADMIN = "admin"
     PARTICIPANT = "participant"
 
 
-class PlayerPosition(str, enum.Enum):
+class PlayerPosition(StrEnum):
     GK = "GK"
     DF = "DF"
     MF = "MF"
     FW = "FW"
 
 
-class MatchStage(str, enum.Enum):
+class MatchStage(StrEnum):
     GROUP = "group"
     R32 = "R32"
     R16 = "R16"
@@ -22,14 +23,14 @@ class MatchStage(str, enum.Enum):
     FINAL = "F"
 
 
-class MatchStatus(str, enum.Enum):
+class MatchStatus(StrEnum):
     LOCKED = "locked"
     SCHEDULED = "scheduled"
     LIVE = "live"
     FINISHED = "finished"
 
 
-class SpecialCategory(str, enum.Enum):
+class SpecialCategory(StrEnum):
     CHAMPION = "champion"
     MVP = "mvp"
     GOLDEN_BOOT = "golden_boot"
