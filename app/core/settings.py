@@ -2,15 +2,19 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    app_name: str = "World Cup Predictions API"
-    app_version: str = "0.1.0"
-    debug: bool = False
+    app_name: str
+    app_version: str
+    debug: bool
 
     postgres_user: str
     postgres_password: str
     postgres_host: str
     postgres_port: int
     postgres_db: str
+
+    jwt_secret_key: str
+    jwt_algorithm: str
+    jwt_access_token_expire_minutes: int
 
     model_config = SettingsConfigDict(
         env_file=".env",
