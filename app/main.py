@@ -2,6 +2,7 @@ from fastapi import APIRouter, FastAPI
 
 from app.api.v1.auth import router as auth_router
 from app.api.v1.health import router as health_router
+from app.api.v1.leagues import router as leagues_router
 from app.api.v1.users import router as users_router
 from app.core.settings import settings
 
@@ -16,6 +17,8 @@ api_v1 = APIRouter(prefix="/api/v1")
 api_v1.include_router(health_router)
 api_v1.include_router(users_router)
 api_v1.include_router(auth_router)
+api_v1.include_router(leagues_router)
+
 app.include_router(api_v1)
 
 
