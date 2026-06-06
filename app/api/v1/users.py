@@ -1,13 +1,13 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.dependencies import User, get_current_user
 from app.db.connection import get_db_session
 from app.repositories.users import UserRepository
 from app.schemas.users import UserResponse, UserUpdate
 from app.services.users import UserService
-from app.core.dependencies import get_current_user, User
 
 router = APIRouter(prefix="/users", tags=["Users"])
 

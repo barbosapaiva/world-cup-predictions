@@ -26,7 +26,12 @@ class Player(Base):
     team_id: Mapped[UUID] = mapped_column(ForeignKey("teams.id"), nullable=False)
     name: Mapped[str] = mapped_column(String(150), nullable=False)
     position: Mapped[PlayerPosition] = mapped_column(
-        Enum(PlayerPosition, name="player_position", create_type=False),
+        Enum(
+            PlayerPosition,
+            name="player_position",
+            create_type=False,
+            values_callable=lambda obj: [e.value for e in obj],
+        ),
         nullable=False,
     )
     birth_date: Mapped[date | None]
@@ -44,7 +49,7 @@ class Match(Base):
     away_placeholder: Mapped[str | None] = mapped_column(String(10))
 
     stage: Mapped[MatchStage] = mapped_column(
-        Enum(MatchStage, name="match_stage", create_type=False),
+        Enum(MatchStage, name="match_stage", create_type=False, values_callable=lambda obj: [e.value for e in obj]),
         nullable=False,
     )
     group_letter: Mapped[str | None] = mapped_column(String(1))
@@ -54,7 +59,7 @@ class Match(Base):
     venue: Mapped[str | None] = mapped_column(String(200))
 
     status: Mapped[MatchStatus] = mapped_column(
-        Enum(MatchStatus, name="match_status", create_type=False),
+        Enum(MatchStatus, name="match_status", create_type=False, values_callable=lambda obj: [e.value for e in obj]),
         default=MatchStatus.SCHEDULED,
         nullable=False,
     )

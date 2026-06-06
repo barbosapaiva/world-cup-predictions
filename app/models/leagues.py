@@ -27,7 +27,12 @@ class LeagueMember(Base):
     user_id: Mapped[UUID] = mapped_column(ForeignKey("users.id"), nullable=False)
     league_id: Mapped[UUID] = mapped_column(ForeignKey("leagues.id"), nullable=False)
     role: Mapped[UserRole] = mapped_column(
-        Enum(UserRole, name="user_role", create_type=False),
+        Enum(
+            UserRole,
+            name="user_role",
+            create_type=False,
+            values_callable=lambda obj: [e.value for e in obj],
+        ),
         default=UserRole.PARTICIPANT,
         nullable=False,
     )

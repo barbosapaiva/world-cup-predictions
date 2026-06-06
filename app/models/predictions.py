@@ -65,7 +65,12 @@ class SpecialPrediction(Base):
     league_id: Mapped[UUID] = mapped_column(ForeignKey("leagues.id"), nullable=False)
 
     category: Mapped[SpecialCategory] = mapped_column(
-        Enum(SpecialCategory, name="special_category", create_type=False),
+        Enum(
+            SpecialCategory,
+            name="special_category",
+            create_type=False,
+            values_callable=lambda obj: [e.value for e in obj],
+        ),
         nullable=False,
     )
 
@@ -84,7 +89,12 @@ class SpecialResult(Base):
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
 
     category: Mapped[SpecialCategory] = mapped_column(
-        Enum(SpecialCategory, name="special_category", create_type=False),
+        Enum(
+            SpecialCategory,
+            name="special_category",
+            create_type=False,
+            values_callable=lambda obj: [e.value for e in obj],
+        ),
         unique=True,
         nullable=False,
     )
