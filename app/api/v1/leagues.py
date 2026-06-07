@@ -16,8 +16,7 @@ router = APIRouter(prefix="/leagues", tags=["Leagues"])
 def get_league_service(
     session: AsyncSession = Depends(get_db_session),
 ) -> LeagueService:
-    repository = LeagueRepository(session)
-    return LeagueService(repository)
+    return LeagueService(LeagueRepository(session))
 
 
 @router.post("", response_model=LeagueResponse, status_code=status.HTTP_201_CREATED)
@@ -67,9 +66,3 @@ async def list_members(
     service: LeagueService = Depends(get_league_service),
 ):
     return await service.list_members(league_id, current_user)
-
-
-def get_league_service(
-    session: AsyncSession = Depends(get_db_session),
-) -> LeagueService:
-    return LeagueService(LeagueRepository(session))
