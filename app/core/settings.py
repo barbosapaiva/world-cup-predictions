@@ -1,4 +1,3 @@
-from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -17,7 +16,7 @@ class Settings(BaseSettings):
     jwt_algorithm: str
     jwt_access_token_expire_minutes: int
 
-    cors_origins: list[str] = []
+    cors_origins: str
 
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -26,16 +25,16 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    @field_validator("cors_origins", mode="before")
-    @classmethod
-    def parse_cors_origins(cls, value: str | list[str] | None) -> list[str]:
-        if value is None or value == "":
+    @property
+    def cors_origins(self) -> list[str]:
+        if not self.cors_origins:
             return []
 
-        if isinstance(value, str):
-            return [origin.strip() for origin in value.split(",") if origin.strip()]
-
-        return value
+        return [
+            origin.strip()
+            for origin in self.cors_origins.split(",")
+            if origin.strip()
+        ]
 
     @property
     def database_url(self) -> str:
@@ -44,5 +43,6 @@ class Settings(BaseSettings):
             f"{self.postgres_password}@{self.postgres_host}:"
             f"{self.postgres_port}/{self.postgres_db}"
         )
+
 
 settings = Settings()
