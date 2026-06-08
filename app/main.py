@@ -4,9 +4,10 @@ from app.api.v1.auth import router as auth_router
 from app.api.v1.health import router as health_router
 from app.api.v1.leagues import router as leagues_router
 from app.api.v1.predictions import router as predictions_router
+from app.api.v1.rankings import router as rankings_router
+from app.api.v1.scoring import router as scoring_router
 from app.api.v1.tournament import router as tournament_router
 from app.api.v1.users import router as users_router
-from app.api.v1.scoring import router as scoring_router
 from app.core.settings import settings
 
 app = FastAPI(
@@ -25,6 +26,7 @@ api_v1.include_router(tournament_router)
 api_v1.include_router(predictions_router)
 api_v1.include_router(predictions_router)
 api_v1.include_router(scoring_router)
+api_v1.include_router(rankings_router, prefix="/api/v1")
 
 app.include_router(api_v1)
 
