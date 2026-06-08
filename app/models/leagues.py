@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import UUID, uuid4
 
-from sqlalchemy import Boolean, Enum, ForeignKey, String, Text, UniqueConstraint, text
+from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, String, Text, UniqueConstraint, text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base, TimestampMixin
@@ -37,6 +37,7 @@ class LeagueMember(Base):
         nullable=False,
     )
     joined_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
         server_default=text("NOW()"),
         nullable=False,
     )

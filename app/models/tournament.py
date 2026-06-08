@@ -1,7 +1,7 @@
 from datetime import date, datetime
 from uuid import UUID, uuid4
 
-from sqlalchemy import Enum, ForeignKey, Integer, String
+from sqlalchemy import DateTime, Enum, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from .base import Base
@@ -55,7 +55,7 @@ class Match(Base):
     group_letter: Mapped[str | None] = mapped_column(String(1))
 
     match_number: Mapped[int] = mapped_column(Integer, unique=True, nullable=False)
-    match_date: Mapped[datetime] = mapped_column(nullable=False)
+    match_date: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     venue: Mapped[str | None] = mapped_column(String(200))
 
     status: Mapped[MatchStatus] = mapped_column(
@@ -64,7 +64,7 @@ class Match(Base):
         nullable=False,
     )
 
-    submission_deadline: Mapped[datetime] = mapped_column(nullable=False)
+    submission_deadline: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
     home_score: Mapped[int | None]
     away_score: Mapped[int | None]
