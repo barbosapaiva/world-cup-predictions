@@ -26,10 +26,10 @@ class RankingRepository:
                 SpecialPredictionScore.special_prediction_id == SpecialPrediction.id,
             )
             .where(
-                SpecialPrediction.user_id == LeagueMember.user_id,
-                SpecialPrediction.league_id == LeagueMember.league_id,
+                SpecialPrediction.user_id == User.id,
+                SpecialPrediction.league_id == league_id,
             )
-            .correlate(LeagueMember)
+            .correlate(User)
             .scalar_subquery()
         )
 
