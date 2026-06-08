@@ -220,6 +220,5 @@ __marimo__/
 # Ignore data files
 data/raw/*
 data/processed/*
-data/tmp/*
 !data/raw/.gitkeep
 !data/processed/.gitkeep
