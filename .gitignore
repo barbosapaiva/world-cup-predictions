@@ -220,5 +220,11 @@ __marimo__/
 # Ignore data files
 data/raw/*
 data/processed/*
+data/samples/*
 !data/raw/.gitkeep
 !data/processed/.gitkeep
+!data/samples/.gitkeep
+
+# Node
+node_modules/
+package-lock.json
