@@ -4,7 +4,12 @@ from sqlalchemy import case, desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.leagues import LeagueMember
-from app.models.predictions import Prediction, PredictionScore
+from app.models.predictions import (
+    Prediction,
+    PredictionScore,
+    SpecialPrediction,
+    SpecialPredictionScore,
+)
 from app.models.users import User
 
 
@@ -13,11 +18,30 @@ class RankingRepository:
         self.session = session
 
     async def get_league_ranking(self, league_id: UUID) -> list[dict]:
+        special_points_subq = (
+            select(func.coalesce(func.sum(SpecialPredictionScore.points_awarded), 0))
+            .select_from(SpecialPrediction)
+            .join(
+                SpecialPredictionScore,
+                SpecialPredictionScore.special_prediction_id == SpecialPrediction.id,
+            )
+            .where(
+                SpecialPrediction.user_id == User.id,
+                SpecialPrediction.league_id == league_id,
+            )
+            .correlate(User)
+            .scalar_subquery()
+        )
+
+        match_points = func.coalesce(func.sum(PredictionScore.total_points), 0)
+
         result = await self.session.execute(
             select(
                 User.id.label("user_id"),
                 User.name.label("name"),
-                func.coalesce(func.sum(PredictionScore.total_points), 0).label("total_points"),
+                (match_points + special_points_subq).label("total_points"),
+                match_points.label("match_points"),
+                special_points_subq.label("special_prediction_points"),
                 func.coalesce(
                     func.sum(
                         case(
@@ -74,6 +98,8 @@ class RankingRepository:
                     "user_id": row["user_id"],
                     "name": row["name"],
                     "total_points": row["total_points"],
+                    "match_points": row["match_points"],
+                    "special_prediction_points": row["special_prediction_points"],
                     "exact_scores": row["exact_scores"],
                     "outcome_hits": row["outcome_hits"],
                     "group_position_points": row["group_position_points"],

@@ -87,6 +87,25 @@ class SpecialPrediction(Base):
     )
 
 
+class SpecialPredictionScore(Base):
+    __tablename__ = "special_prediction_scores"
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    special_prediction_id: Mapped[UUID] = mapped_column(
+        ForeignKey("special_predictions.id", ondelete="CASCADE"),
+        unique=True,
+        nullable=False,
+    )
+
+    points_awarded: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+
+    calculated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=text("NOW()"),
+        nullable=False,
+    )
+
+
 class SpecialResult(Base):
     __tablename__ = "special_results"
 

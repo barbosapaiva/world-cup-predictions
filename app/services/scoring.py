@@ -2,8 +2,8 @@ from uuid import UUID
 
 from fastapi import HTTPException, status
 
-from app.models.enums import MatchStatus
-from app.models.predictions import Prediction, PredictionScore
+from app.models.enums import MatchStatus, SpecialCategory
+from app.models.predictions import Prediction, PredictionScore, SpecialPredictionScore
 from app.models.users import User
 from app.repositories.scoring import ScoringRepository
 from app.repositories.tournament import TournamentRepository
@@ -12,6 +12,7 @@ from app.repositories.tournament import TournamentRepository
 class ScoringService:
     EXACT_SCORE_POINTS = 3
     OUTCOME_POINTS = 1
+    SPECIAL_PREDICTION_POINTS = 6
     NO_POINTS = 0
 
     def __init__(
@@ -148,6 +149,63 @@ class ScoringService:
             return "away_win"
 
         return "draw"
+
+    async def score_special_category(
+        self,
+        category: SpecialCategory,
+        current_user: User,
+    ) -> list[SpecialPredictionScore]:
+        self._require_superadmin(current_user)
+
+        special_result = await self.scoring_repository.get_special_result(category)
+
+        if special_result is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"No result recorded for category '{category.value}'",
+            )
+
+        predictions = await self.scoring_repository.list_special_predictions_by_category(category)
+
+        scores: list[SpecialPredictionScore] = []
+
+        for prediction in predictions:
+            score = await self._calculate_and_save_special_score(
+                prediction=prediction,
+                special_result=special_result,
+            )
+            scores.append(score)
+
+        return scores
+
+    async def _calculate_and_save_special_score(
+        self,
+        prediction,
+        special_result,
+    ) -> SpecialPredictionScore:
+        points = self._calculate_special_points(prediction, special_result)
+
+        existing = await self.scoring_repository.get_special_prediction_score(prediction.id)
+
+        if existing is None:
+            score = SpecialPredictionScore(
+                special_prediction_id=prediction.id,
+                points_awarded=points,
+            )
+            return await self.scoring_repository.save_special_prediction_score(score)
+
+        existing.points_awarded = points
+        return await self.scoring_repository.update_special_prediction_score(existing)
+
+    def _calculate_special_points(self, prediction, special_result) -> int:
+        if prediction.category == SpecialCategory.CHAMPION:
+            if prediction.team_id == special_result.team_id:
+                return self.SPECIAL_PREDICTION_POINTS
+            return self.NO_POINTS
+
+        if prediction.player_id == special_result.player_id:
+            return self.SPECIAL_PREDICTION_POINTS
+        return self.NO_POINTS
 
     def _require_superadmin(self, current_user: User) -> None:
         if not current_user.is_superadmin:

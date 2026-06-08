@@ -41,6 +41,15 @@ class SpecialPredictionCreate(BaseModel):
     player_id: UUID | None = None
 
 
+class SpecialPredictionScoreResponse(BaseModel):
+    id: UUID
+    special_prediction_id: UUID
+    points_awarded: int
+    calculated_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
 class SpecialPredictionResponse(BaseModel):
     id: UUID
     user_id: UUID

@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.dependencies import get_current_user
 from app.db.connection import get_db_session
+from app.models.enums import SpecialCategory
 from app.models.users import User
 from app.repositories.scoring import ScoringRepository
 from app.repositories.tournament import TournamentRepository
@@ -38,5 +39,22 @@ async def recalculate_match_scores(
 
     return {
         "match_id": match_id,
+        "scores_recalculated": len(scores),
+    }
+
+
+@router.post("/special/{category}/recalculate")
+async def recalculate_special_category_scores(
+    category: SpecialCategory,
+    current_user: User = Depends(get_current_user),
+    service: ScoringService = Depends(get_scoring_service),
+):
+    scores = await service.score_special_category(
+        category=category,
+        current_user=current_user,
+    )
+
+    return {
+        "category": category.value,
         "scores_recalculated": len(scores),
     }
