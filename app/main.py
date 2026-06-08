@@ -26,7 +26,7 @@ api_v1.include_router(tournament_router)
 api_v1.include_router(predictions_router)
 api_v1.include_router(predictions_router)
 api_v1.include_router(scoring_router)
-api_v1.include_router(rankings_router, prefix="/api/v1")
+api_v1.include_router(rankings_router)
 
 app.include_router(api_v1)
 
