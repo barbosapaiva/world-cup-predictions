@@ -3,9 +3,10 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.v1.scoring import get_scoring_service
 from app.core.dependencies import get_current_user
 from app.db.connection import get_db_session
-from app.models.enums import MatchStage
+from app.models.enums import MatchStage, MatchStatus
 from app.models.users import User
 from app.repositories.tournament import TournamentRepository
 from app.schemas.tournament import (
@@ -17,6 +18,7 @@ from app.schemas.tournament import (
     TeamCreate,
     TeamResponse,
 )
+from app.services.scoring import ScoringService
 from app.services.tournament import TournamentService
 
 router = APIRouter(tags=["Tournament"])
@@ -106,6 +108,10 @@ async def update_match_result(
     match_id: UUID,
     data: MatchResultUpdate,
     current_user: User = Depends(get_current_user),
-    service: TournamentService = Depends(get_tournament_service),
+    tournament_service: TournamentService = Depends(get_tournament_service),
+    scoring_service: ScoringService = Depends(get_scoring_service),
 ):
-    return await service.update_match_result(match_id, data, current_user)
+    match = await tournament_service.update_match_result(match_id, data, current_user)
+    if match.status == MatchStatus.FINISHED:
+        await scoring_service.recalculate_match_scores(match_id, current_user)
+    return match

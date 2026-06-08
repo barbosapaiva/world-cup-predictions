@@ -76,11 +76,12 @@ The goal of this phase is to build a complete platform capable of running privat
 
 ### Scoring
 
-- [ ] Calculate exact score points
-- [ ] Calculate 1X2 outcome points
+- [x] Calculate exact score points
+- [x] Calculate 1X2 outcome points
+- [ ] Calculate group position points
 - [ ] Calculate special prediction points
-- [ ] Recalculate scores after result updates
-- [ ] Store calculated scores separately from predictions
+- [x] Recalculate scores after result updates
+- [x] Store calculated scores separately from predictions
 
 ### Rankings
 
