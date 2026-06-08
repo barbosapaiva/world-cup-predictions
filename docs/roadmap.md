@@ -71,15 +71,15 @@ The goal of this phase is to build a complete platform capable of running privat
 - [x] Submit Golden Boot prediction
 - [x] Submit Best Young Player prediction
 - [x] Submit Best Goalkeeper prediction
-- [ ] Record official special results
-- [ ] Calculate special prediction points
+- [x] Record official special results
+- [x] Calculate special prediction points
 
 ### Scoring
 
 - [x] Calculate exact score points
 - [x] Calculate 1X2 outcome points
 - [ ] Calculate group position points
-- [ ] Calculate special prediction points
+- [x] Calculate special prediction points
 - [x] Recalculate scores after result updates
 - [x] Store calculated scores separately from predictions
 
