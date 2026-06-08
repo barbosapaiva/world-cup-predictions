@@ -3,7 +3,13 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.predictions import Prediction, PredictionScore
+from app.models.predictions import (
+    Prediction,
+    PredictionScore,
+    SpecialPrediction,
+    SpecialPredictionScore,
+    SpecialResult,
+)
 
 
 class ScoringRepository:
@@ -39,3 +45,45 @@ class ScoringRepository:
         await self.session.commit()
         await self.session.refresh(prediction_score)
         return prediction_score
+
+    # ── Special Prediction Scoring ───────────────
+
+    async def get_special_result(
+        self,
+        category: str,
+    ) -> SpecialResult | None:
+        result = await self.session.execute(select(SpecialResult).where(SpecialResult.category == category))
+        return result.scalar_one_or_none()
+
+    async def list_special_predictions_by_category(
+        self,
+        category: str,
+    ) -> list[SpecialPrediction]:
+        result = await self.session.execute(select(SpecialPrediction).where(SpecialPrediction.category == category))
+        return list(result.scalars().all())
+
+    async def get_special_prediction_score(
+        self,
+        special_prediction_id: UUID,
+    ) -> SpecialPredictionScore | None:
+        result = await self.session.execute(
+            select(SpecialPredictionScore).where(SpecialPredictionScore.special_prediction_id == special_prediction_id)
+        )
+        return result.scalar_one_or_none()
+
+    async def save_special_prediction_score(
+        self,
+        score: SpecialPredictionScore,
+    ) -> SpecialPredictionScore:
+        self.session.add(score)
+        await self.session.commit()
+        await self.session.refresh(score)
+        return score
+
+    async def update_special_prediction_score(
+        self,
+        score: SpecialPredictionScore,
+    ) -> SpecialPredictionScore:
+        await self.session.commit()
+        await self.session.refresh(score)
+        return score
