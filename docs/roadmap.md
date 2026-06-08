@@ -85,19 +85,19 @@ The goal of this phase is to build a complete platform capable of running privat
 
 ### Rankings
 
-- [ ] Generate league standings
+- [x] Generate league standings
 - [ ] Apply tie-break rules
-- [ ] Track user score totals
-- [ ] Show ranking by league
+- [x] Track user score totals
+- [x] Show ranking by league
 - [ ] Show ranking evolution over time
 
 ### Operational Data Ingestion
 
-- [ ] Import teams
-- [ ] Import players
-- [ ] Import matches
+- [x] Import teams
+- [x] Import players
+- [x] Import matches
 - [ ] Import match results
-- [ ] Validate imported data
+- [x] Validate imported data
 - [ ] Log import executions
 
 ---

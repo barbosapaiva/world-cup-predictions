@@ -24,5 +24,23 @@ services:
       timeout: 3s
       retries: 5
 
+  jupyter:
+    image: jupyter/minimal-notebook:latest
+    container_name: worldcup-jupyter
+    profiles:
+      - dev
+    env_file: .env
+    ports:
+      - "8888:8888"
+    volumes:
+      - ./notebooks:/home/jovyan/notebooks
+      - ./scripts:/home/jovyan/scripts
+    depends_on:
+      db:
+        condition: service_healthy
+    command: >
+      bash -c "pip install requests pandas python-dotenv asyncpg sqlalchemy &&
+      start-notebook.py --NotebookApp.token='' --NotebookApp.password=''"
+
 volumes:
   pgdata:
