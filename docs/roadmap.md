@@ -56,22 +56,23 @@ The goal of this phase is to build a complete platform capable of running privat
 
 ### Predictions
 
-- [ ] Submit match predictions
-- [ ] Update predictions before deadline
-- [ ] Block predictions after deadline
-- [ ] Validate league membership before prediction
-- [ ] Validate knockout advancing team
-- [ ] List user predictions
-- [ ] List match predictions
+- [x] Submit match predictions
+- [x] Update predictions before deadline
+- [x] Block predictions after deadline
+- [x] Validate league membership before prediction
+- [x] Validate knockout advancing team
+- [x] List user predictions
+- [x] List match predictions
 
 ### Special Predictions
 
-- [ ] Submit champion prediction
-- [ ] Submit MVP prediction
-- [ ] Submit Golden Boot prediction
-- [ ] Submit Best Young Player prediction
-- [ ] Submit Best Goalkeeper prediction
+- [x] Submit champion prediction
+- [x] Submit MVP prediction
+- [x] Submit Golden Boot prediction
+- [x] Submit Best Young Player prediction
+- [x] Submit Best Goalkeeper prediction
 - [ ] Record official special results
+- [ ] Calculate special prediction points
 
 ### Scoring
 
