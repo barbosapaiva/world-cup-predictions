@@ -24,7 +24,6 @@ api_v1.include_router(auth_router)
 api_v1.include_router(leagues_router)
 api_v1.include_router(tournament_router)
 api_v1.include_router(predictions_router)
-api_v1.include_router(predictions_router)
 api_v1.include_router(scoring_router)
 api_v1.include_router(rankings_router)
 

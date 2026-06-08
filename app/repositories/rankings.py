@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from sqlalchemy import desc, func, select
+from sqlalchemy import case, desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.leagues import LeagueMember
@@ -20,7 +20,7 @@ class RankingRepository:
                 func.coalesce(func.sum(PredictionScore.total_points), 0).label("total_points"),
                 func.coalesce(
                     func.sum(
-                        func.case(
+                        case(
                             (PredictionScore.exact_score_points == 3, 1),
                             else_=0,
                         )
@@ -29,7 +29,7 @@ class RankingRepository:
                 ).label("exact_scores"),
                 func.coalesce(
                     func.sum(
-                        func.case(
+                        case(
                             (PredictionScore.outcome_points == 1, 1),
                             else_=0,
                         )

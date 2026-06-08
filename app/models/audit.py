@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import UUID, uuid4
 
-from sqlalchemy import ForeignKey, String, text
+from sqlalchemy import DateTime, ForeignKey, String, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -21,6 +21,7 @@ class AuditLog(Base):
     details: Mapped[dict | None] = mapped_column(JSONB)
 
     created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
         server_default=text("NOW()"),
         nullable=False,
     )

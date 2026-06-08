@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import UUID, uuid4
 
-from sqlalchemy import Enum, ForeignKey, Integer, UniqueConstraint, text
+from sqlalchemy import DateTime, Enum, ForeignKey, Integer, UniqueConstraint, text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base
@@ -23,10 +23,12 @@ class Prediction(Base):
     advancing_team_id: Mapped[UUID | None] = mapped_column(ForeignKey("teams.id"))
 
     submitted_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
         server_default=text("NOW()"),
         nullable=False,
     )
     updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
         server_default=text("NOW()"),
         nullable=False,
     )
@@ -48,6 +50,7 @@ class PredictionScore(Base):
     total_points: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 
     calculated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
         server_default=text("NOW()"),
         nullable=False,
     )
@@ -78,6 +81,7 @@ class SpecialPrediction(Base):
     player_id: Mapped[UUID | None] = mapped_column(ForeignKey("players.id"))
 
     submitted_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
         server_default=text("NOW()"),
         nullable=False,
     )
@@ -103,6 +107,7 @@ class SpecialResult(Base):
     player_id: Mapped[UUID | None] = mapped_column(ForeignKey("players.id"))
 
     recorded_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
         server_default=text("NOW()"),
         nullable=False,
     )
