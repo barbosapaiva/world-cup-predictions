@@ -28,7 +28,8 @@ The data model is organised around six main domains:
 3. Tournament
 4. Predictions
 5. Special Predictions
-6. Audit
+6. Group Predictions
+7. Audit
 
 ---
 
@@ -83,6 +84,8 @@ The `league_members` table connects users and leagues, allowing the same user to
 - A league can contain multiple users.
 - A user has a role inside each league.
 - The creator of a league is automatically added as league admin.
+- Each league has a unique invite code generated automatically on creation.
+- Users join leagues by entering the league's invite code.
 
 ### Key relationships
 
@@ -202,7 +205,41 @@ Special results store the real official results used to calculate points.
 
 ---
 
-## 6. Audit
+## 6. Group Predictions
+
+The `group_predictions` domain is responsible for predictions about the final standings of each group.
+
+### Main entity
+
+- `group_predictions`
+
+### Purpose
+
+A group prediction represents a user's predicted final order (1st through 4th) for a specific group within a league.
+
+Unlike match predictions which target individual games, group predictions target the overall outcome of the group stage. They are scored after all group matches are finished by comparing the predicted order with the actual final standings.
+
+### Key rules
+
+- Each user can submit one group prediction per group per league.
+- A group prediction references exactly four teams, all from the same group.
+- All four teams must be distinct.
+- The deadline for submission is before the first match of that group starts.
+- Scoring awards 1 point per correctly predicted position (maximum 4 per group, 48 total across 12 groups).
+- Points are stored in `points_awarded` (NULL until scored).
+
+### Key relationships
+
+- `group_predictions.user_id` references `users.id`.
+- `group_predictions.league_id` references `leagues.id`.
+- `group_predictions.first_team_id` references `teams.id`.
+- `group_predictions.second_team_id` references `teams.id`.
+- `group_predictions.third_team_id` references `teams.id`.
+- `group_predictions.fourth_team_id` references `teams.id`.
+
+---
+
+## 7. Audit
 
 The `audit` domain is responsible for tracking important system actions.
 
@@ -255,3 +292,24 @@ This is supported by the uniqueness rule:
 
 ```text
 user_id + match_id + league_id
+```
+
+This enables the same user to compete independently across leagues with different predictions.
+
+---
+
+### Separation of raw predictions and calculated scores
+
+Prediction scores are stored in a separate table (`prediction_scores`) to ensure the original user input is never modified by the scoring engine.
+
+This design allows scores to be recalculated at any time without losing or altering the submitted predictions.
+
+---
+
+### Group predictions as explicit predictions
+
+Group position points are calculated from explicit group predictions rather than being derived from match predictions.
+
+Users explicitly predict the final order of each group (1st through 4th) before the group starts. This was introduced because colleagues proposed it and the tournament timeline allowed for the feature.
+
+The scoring is separate from match prediction scoring: 1 point per correct position, stored directly on the `group_predictions` table.
