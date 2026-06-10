@@ -8,6 +8,8 @@ RUN pip install --no-cache-dir uv
 RUN uv sync --frozen --no-dev
 
 COPY app ./app
+COPY pipelines ./pipelines
+COPY sql ./sql
 
 EXPOSE 8000
 
