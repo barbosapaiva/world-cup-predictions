@@ -8,10 +8,6 @@ from app.models.base import Base, TimestampMixin
 from app.models.enums import UserRole
 
 
-def generate_invite_code() -> str:
-    return uuid4().hex[:8].upper()
-
-
 class League(TimestampMixin, Base):
     __tablename__ = "leagues"
 
@@ -19,8 +15,8 @@ class League(TimestampMixin, Base):
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     rules: Mapped[str | None] = mapped_column(Text)
     season: Mapped[str] = mapped_column(String(20), nullable=False)
+    invite_code: Mapped[str] = mapped_column(String(20), unique=True, nullable=False)
     created_by: Mapped[UUID] = mapped_column(ForeignKey("users.id"), nullable=False)
-    invite_code: Mapped[str] = mapped_column(String(20), unique=True, nullable=False, default=generate_invite_code)
 
 
 class LeagueMember(Base):

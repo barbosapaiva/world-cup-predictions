@@ -12,7 +12,9 @@ class GroupPredictionRepository:
 
     async def upsert(self, prediction: GroupPrediction) -> GroupPrediction:
         existing = await self.get_by_user_league_group(
-            prediction.user_id, prediction.league_id, prediction.group_letter,
+            prediction.user_id,
+            prediction.league_id,
+            prediction.group_letter,
         )
         if existing:
             existing.first_team_id = prediction.first_team_id
@@ -29,7 +31,10 @@ class GroupPredictionRepository:
         return prediction
 
     async def get_by_user_league_group(
-        self, user_id: UUID, league_id: UUID, group_letter: str,
+        self,
+        user_id: UUID,
+        league_id: UUID,
+        group_letter: str,
     ) -> GroupPrediction | None:
         result = await self.session.execute(
             select(GroupPrediction).where(
@@ -41,7 +46,9 @@ class GroupPredictionRepository:
         return result.scalar_one_or_none()
 
     async def list_by_user_league(
-        self, user_id: UUID, league_id: UUID,
+        self,
+        user_id: UUID,
+        league_id: UUID,
     ) -> list[GroupPrediction]:
         result = await self.session.execute(
             select(GroupPrediction)
@@ -54,7 +61,9 @@ class GroupPredictionRepository:
         return list(result.scalars().all())
 
     async def list_by_league_group(
-        self, league_id: UUID, group_letter: str,
+        self,
+        league_id: UUID,
+        group_letter: str,
     ) -> list[GroupPrediction]:
         result = await self.session.execute(
             select(GroupPrediction).where(
@@ -65,11 +74,11 @@ class GroupPredictionRepository:
         return list(result.scalars().all())
 
     async def update_points(
-        self, prediction_id: UUID, points: int,
+        self,
+        prediction_id: UUID,
+        points: int,
     ) -> None:
         await self.session.execute(
-            update(GroupPrediction)
-            .where(GroupPrediction.id == prediction_id)
-            .values(points_awarded=points)
+            update(GroupPrediction).where(GroupPrediction.id == prediction_id).values(points_awarded=points)
         )
         await self.session.commit()

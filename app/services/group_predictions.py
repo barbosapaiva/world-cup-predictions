@@ -69,7 +69,9 @@ class GroupPredictionService:
         return await self.repo.upsert(prediction)
 
     async def list_my_predictions(
-        self, league_id: UUID, current_user: User,
+        self,
+        league_id: UUID,
+        current_user: User,
     ) -> list[GroupPrediction]:
         member = await self.league_repo.get_member(current_user.id, league_id)
         if member is None:
@@ -80,10 +82,7 @@ class GroupPredictionService:
     async def get_group_standings(self, group_letter: str) -> list[GroupStandingEntry]:
         """Compute actual group standings from finished match results."""
         all_group_matches = await self.tournament_repo.list_matches(stage=MatchStage.GROUP)
-        matches = [
-            m for m in all_group_matches
-            if m.group_letter == group_letter and m.status == MatchStatus.FINISHED
-        ]
+        matches = [m for m in all_group_matches if m.group_letter == group_letter and m.status == MatchStatus.FINISHED]
 
         teams = await self.tournament_repo.list_teams_by_group(group_letter)
         if not teams:
@@ -92,9 +91,15 @@ class GroupPredictionService:
         stats: dict[UUID, dict] = {}
         for t in teams:
             stats[t.id] = {
-                "team_id": t.id, "team_name": t.name, "team_code": t.code,
-                "played": 0, "won": 0, "drawn": 0, "lost": 0,
-                "goals_for": 0, "goals_against": 0,
+                "team_id": t.id,
+                "team_name": t.name,
+                "team_code": t.code,
+                "played": 0,
+                "won": 0,
+                "drawn": 0,
+                "lost": 0,
+                "goals_for": 0,
+                "goals_against": 0,
             }
 
         for m in matches:
@@ -133,10 +138,7 @@ class GroupPredictionService:
         # Sort: points desc, goal diff desc, goals for desc
         entries.sort(key=lambda x: (-x["points"], -x["goal_difference"], -x["goals_for"]))
 
-        return [
-            GroupStandingEntry(position=i + 1, **e)
-            for i, e in enumerate(entries)
-        ]
+        return [GroupStandingEntry(position=i + 1, **e) for i, e in enumerate(entries)]
 
     async def score_group(self, league_id: UUID, group_letter: str) -> None:
         """Score all predictions for a group after it finishes."""
@@ -149,11 +151,10 @@ class GroupPredictionService:
 
         for pred in predictions:
             predicted_order = [
-                pred.first_team_id, pred.second_team_id,
-                pred.third_team_id, pred.fourth_team_id,
+                pred.first_team_id,
+                pred.second_team_id,
+                pred.third_team_id,
+                pred.fourth_team_id,
             ]
-            points = sum(
-                1 for predicted, actual in zip(predicted_order, actual_order)
-                if predicted == actual
-            )
+            points = sum(1 for predicted, actual in zip(predicted_order, actual_order) if predicted == actual)
             await self.repo.update_points(pred.id, points)

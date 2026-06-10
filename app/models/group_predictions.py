@@ -10,9 +10,7 @@ from app.models.base import Base
 class GroupPrediction(Base):
     __tablename__ = "group_predictions"
 
-    __table_args__ = (
-        UniqueConstraint("user_id", "league_id", "group_letter", name="uq_group_pred_user_league_group"),
-    )
+    __table_args__ = (UniqueConstraint("user_id", "league_id", "group_letter", name="uq_group_pred_user_league_group"),)
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
     user_id: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
@@ -23,10 +21,14 @@ class GroupPrediction(Base):
     third_team_id: Mapped[UUID] = mapped_column(ForeignKey("teams.id"), nullable=False)
     fourth_team_id: Mapped[UUID] = mapped_column(ForeignKey("teams.id"), nullable=False)
     submitted_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=text("NOW()"), nullable=False,
+        DateTime(timezone=True),
+        server_default=text("NOW()"),
+        nullable=False,
     )
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=text("NOW()"), nullable=False,
+        DateTime(timezone=True),
+        server_default=text("NOW()"),
+        nullable=False,
     )
     points_awarded: Mapped[int | None] = mapped_column(Integer, nullable=True)
 

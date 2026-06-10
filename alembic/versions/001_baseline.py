@@ -5,34 +5,82 @@ Revises:
 Create Date: 2026-06-10
 
 """
-from typing import Sequence, Union
+
+from collections.abc import Sequence
+
+import sqlalchemy as sa
+from sqlalchemy.dialects.postgresql import ENUM, JSONB, UUID
 
 from alembic import op
-import sqlalchemy as sa
-from sqlalchemy.dialects.postgresql import ENUM, UUID, JSONB
 
 revision: str = "001_baseline"
-down_revision: Union[str, None] = None
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | None = None
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 # Define enums — create_type=False prevents SQLAlchemy from auto-creating them
 user_role = ENUM("admin", "participant", name="user_role", create_type=False)
 player_position = ENUM("GK", "DF", "MF", "FW", name="player_position", create_type=False)
 match_stage = ENUM("group", "R32", "R16", "QF", "SF", "3rd", "F", name="match_stage", create_type=False)
 match_status = ENUM("locked", "scheduled", "live", "finished", name="match_status", create_type=False)
-special_category = ENUM("champion", "mvp", "golden_boot", "young_player", "best_gk", name="special_category", create_type=False)
+special_category = ENUM(
+    "champion", "mvp", "golden_boot", "young_player", "best_gk", name="special_category", create_type=False
+)
 
 
 def upgrade() -> None:
     op.execute('CREATE EXTENSION IF NOT EXISTS "pgcrypto"')
 
     # Create enum types explicitly (one per execute for asyncpg)
-    op.execute("DO $$ BEGIN CREATE TYPE user_role AS ENUM ('admin', 'participant'); EXCEPTION WHEN duplicate_object THEN NULL; END $$")
-    op.execute("DO $$ BEGIN CREATE TYPE player_position AS ENUM ('GK', 'DF', 'MF', 'FW'); EXCEPTION WHEN duplicate_object THEN NULL; END $$")
-    op.execute("DO $$ BEGIN CREATE TYPE match_stage AS ENUM ('group', 'R32', 'R16', 'QF', 'SF', '3rd', 'F'); EXCEPTION WHEN duplicate_object THEN NULL; END $$")
-    op.execute("DO $$ BEGIN CREATE TYPE match_status AS ENUM ('locked', 'scheduled', 'live', 'finished'); EXCEPTION WHEN duplicate_object THEN NULL; END $$")
-    op.execute("DO $$ BEGIN CREATE TYPE special_category AS ENUM ('champion', 'mvp', 'golden_boot', 'young_player', 'best_gk'); EXCEPTION WHEN duplicate_object THEN NULL; END $$")
+    op.execute(
+        """
+        DO $$
+        BEGIN
+            CREATE TYPE player_position AS ENUM ('GK', 'DF', 'MF', 'FW');
+        EXCEPTION
+            WHEN duplicate_object THEN NULL;
+        END $$;
+        """
+    )
+
+    op.execute(
+        """
+        DO $$
+        BEGIN
+            CREATE TYPE match_stage AS ENUM ('group', 'R32', 'R16', 'QF', 'SF', '3rd', 'F');
+        EXCEPTION
+            WHEN duplicate_object THEN NULL;
+        END $$;
+        """
+    )
+
+    op.execute(
+        """
+        DO $$
+        BEGIN
+            CREATE TYPE match_status AS ENUM ('locked', 'scheduled', 'live', 'finished');
+        EXCEPTION
+            WHEN duplicate_object THEN NULL;
+        END $$;
+        """
+    )
+
+    op.execute(
+        """
+        DO $$
+        BEGIN
+            CREATE TYPE special_category AS ENUM (
+                'champion',
+                'mvp',
+                'golden_boot',
+                'young_player',
+                'best_gk'
+            );
+        EXCEPTION
+            WHEN duplicate_object THEN NULL;
+        END $$;
+        """
+    )
 
     # USERS
     op.create_table(
@@ -116,9 +164,18 @@ def upgrade() -> None:
         sa.CheckConstraint("home_team_id IS NOT NULL OR home_placeholder IS NOT NULL", name="chk_home_team"),
         sa.CheckConstraint("away_team_id IS NOT NULL OR away_placeholder IS NOT NULL", name="chk_away_team"),
         sa.CheckConstraint("advancing_team_id IS NULL OR stage != 'group'", name="chk_advancing_knockout"),
-        sa.CheckConstraint("advancing_team_id IS NULL OR advancing_team_id = home_team_id OR advancing_team_id = away_team_id", name="chk_advancing_valid"),
-        sa.CheckConstraint("(home_score IS NULL AND away_score IS NULL) OR (home_score IS NOT NULL AND away_score IS NOT NULL)", name="chk_scores_pair"),
-        sa.CheckConstraint("(home_score IS NULL OR home_score >= 0) AND (away_score IS NULL OR away_score >= 0)", name="chk_scores_positive"),
+        sa.CheckConstraint(
+            "advancing_team_id IS NULL OR advancing_team_id = home_team_id OR advancing_team_id = away_team_id",
+            name="chk_advancing_valid",
+        ),
+        sa.CheckConstraint(
+            "(home_score IS NULL AND away_score IS NULL) OR (home_score IS NOT NULL AND away_score IS NOT NULL)",
+            name="chk_scores_pair",
+        ),
+        sa.CheckConstraint(
+            "(home_score IS NULL OR home_score >= 0) AND (away_score IS NULL OR away_score >= 0)",
+            name="chk_scores_positive",
+        ),
         sa.CheckConstraint("submission_deadline <= match_date", name="chk_submission_deadline_before_match"),
     )
     op.create_index("idx_matches_stage", "matches", ["stage"])
@@ -152,7 +209,9 @@ def upgrade() -> None:
     op.create_table(
         "prediction_scores",
         sa.Column("id", UUID(), server_default=sa.text("gen_random_uuid()"), primary_key=True),
-        sa.Column("prediction_id", UUID(), sa.ForeignKey("predictions.id", ondelete="CASCADE"), nullable=False, unique=True),
+        sa.Column(
+            "prediction_id", UUID(), sa.ForeignKey("predictions.id", ondelete="CASCADE"), nullable=False, unique=True
+        ),
         sa.Column("exact_score_points", sa.Integer(), nullable=False, server_default=sa.text("0")),
         sa.Column("outcome_points", sa.Integer(), nullable=False, server_default=sa.text("0")),
         sa.Column("group_position_points", sa.Integer(), nullable=False, server_default=sa.text("0")),
@@ -161,7 +220,9 @@ def upgrade() -> None:
         sa.CheckConstraint("exact_score_points IN (0, 3)", name="chk_exact_points"),
         sa.CheckConstraint("outcome_points IN (0, 1)", name="chk_outcome_points"),
         sa.CheckConstraint("group_position_points BETWEEN 0 AND 3", name="chk_group_points"),
-        sa.CheckConstraint("total_points = exact_score_points + outcome_points + group_position_points", name="chk_total_points"),
+        sa.CheckConstraint(
+            "total_points = exact_score_points + outcome_points + group_position_points", name="chk_total_points"
+        ),
     )
     op.create_index("idx_pred_scores_prediction", "prediction_scores", ["prediction_id"])
 
@@ -207,7 +268,13 @@ def upgrade() -> None:
     op.create_table(
         "special_prediction_scores",
         sa.Column("id", UUID(), server_default=sa.text("gen_random_uuid()"), primary_key=True),
-        sa.Column("special_prediction_id", UUID(), sa.ForeignKey("special_predictions.id", ondelete="CASCADE"), nullable=False, unique=True),
+        sa.Column(
+            "special_prediction_id",
+            UUID(),
+            sa.ForeignKey("special_predictions.id", ondelete="CASCADE"),
+            nullable=False,
+            unique=True,
+        ),
         sa.Column("points_awarded", sa.Integer(), nullable=False, server_default=sa.text("0")),
         sa.Column("calculated_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("NOW()")),
         sa.CheckConstraint("points_awarded IN (0, 6)", name="chk_special_points"),

@@ -41,6 +41,10 @@ class TournamentRepository:
         await self.session.refresh(player)
         return player
 
+    async def list_players(self) -> list[Player]:
+        result = await self.session.execute(select(Player).order_by(Player.name.asc()))
+        return list(result.scalars().all())
+
     async def list_players_by_team(self, team_id: UUID) -> list[Player]:
         result = await self.session.execute(select(Player).where(Player.team_id == team_id).order_by(Player.name.asc()))
         return list(result.scalars().all())

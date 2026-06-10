@@ -13,6 +13,7 @@ export interface UserCreate {
   name: string;
   email: string;
   password: string;
+  invite_code: string;
 }
 
 export interface User {
@@ -36,6 +37,7 @@ export interface League {
   name: string;
   rules: string | null;
   season: string;
+  invite_code: string;
   created_by: string;
   created_at: string;
 }
@@ -43,6 +45,7 @@ export interface League {
 export interface LeagueMember {
   id: string;
   user_id: string;
+  user_name: string;
   league_id: string;
   role: 'admin' | 'participant';
   joined_at: string;
@@ -101,6 +104,61 @@ export interface Prediction {
   updated_at: string;
 }
 
+// --- Special Predictions ---
+export type SpecialCategory = 'champion' | 'mvp' | 'golden_boot' | 'young_player' | 'best_gk';
+
+export interface SpecialPredictionCreate {
+  league_id: string;
+  category: SpecialCategory;
+  team_id?: string;
+  player_id?: string;
+}
+
+export interface SpecialPrediction {
+  id: string;
+  user_id: string;
+  league_id: string;
+  category: SpecialCategory;
+  team_id: string | null;
+  player_id: string | null;
+  submitted_at: string;
+}
+
+export interface Player {
+  id: string;
+  team_id: string;
+  name: string;
+  position: 'GK' | 'DF' | 'MF' | 'FW';
+  birth_date: string | null;
+}
+
+// --- Group Predictions ---
+export interface GroupPredictionCreate {
+  group_letter: string;
+  first_team_id: string;
+  second_team_id: string;
+  third_team_id: string;
+  fourth_team_id: string;
+}
+
+export interface GroupPrediction {
+  id: string;
+  user_id: string;
+  league_id: string;
+  group_letter: string;
+  first_team_id: string;
+  second_team_id: string;
+  third_team_id: string;
+  fourth_team_id: string;
+  first_team: Team | null;
+  second_team: Team | null;
+  third_team: Team | null;
+  fourth_team: Team | null;
+  submitted_at: string;
+  updated_at: string;
+  points_awarded: number | null;
+}
+
 // --- Rankings ---
 export interface RankingEntry {
   position: number;
@@ -112,4 +170,5 @@ export interface RankingEntry {
   exact_scores: number;
   outcome_hits: number;
   group_position_points: number;
+  group_prediction_points: number;
 }
