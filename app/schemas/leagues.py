@@ -30,10 +30,6 @@ class AddMemberRequest(BaseModel):
     role: UserRole = UserRole.PARTICIPANT
 
 
-class JoinLeagueRequest(BaseModel):
-    invite_code: str
-
-
 class LeagueMemberResponse(BaseModel):
     id: UUID
     user_id: UUID

@@ -31,6 +31,10 @@ class LeagueRepository:
         result = await self.session.execute(select(League).where(League.id == league_id))
         return result.scalar_one_or_none()
 
+    async def get_by_invite_code(self, invite_code: str) -> League | None:
+        result = await self.session.execute(select(League).where(League.invite_code == invite_code))
+        return result.scalar_one_or_none()
+
     async def list_by_user(self, user_id: UUID) -> list[League]:
         result = await self.session.execute(
             select(League)
@@ -70,12 +74,6 @@ class LeagueRepository:
             .order_by(LeagueMember.joined_at.asc())
         )
         return list(result.scalars().all())
-
-    async def get_by_invite_code(self, invite_code: str) -> League | None:
-        result = await self.session.execute(
-            select(League).where(League.invite_code == invite_code.upper())
-        )
-        return result.scalar_one_or_none()
 
     async def update(self, league: League) -> League:
         await self.session.commit()

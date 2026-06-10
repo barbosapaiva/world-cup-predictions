@@ -16,10 +16,9 @@ export async function createLeague(data: LeagueCreate): Promise<League> {
   return res.data;
 }
 
-export async function joinLeague(leagueId: string, userId: string): Promise<LeagueMember> {
-  const res = await api.post<LeagueMember>(`/leagues/${leagueId}/members`, {
-    user_id: userId,
-    role: 'participant',
+export async function joinLeagueByCode(inviteCode: string): Promise<LeagueMember> {
+  const res = await api.post<LeagueMember>('/leagues/join', {
+    invite_code: inviteCode,
   });
   return res.data;
 }

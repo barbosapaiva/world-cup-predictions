@@ -1,3 +1,5 @@
+import secrets
+import string
 from uuid import UUID
 
 from fastapi import HTTPException, status
@@ -6,18 +8,24 @@ from app.models.enums import UserRole
 from app.models.leagues import League, LeagueMember
 from app.models.users import User
 from app.repositories.leagues import LeagueRepository
-from app.schemas.leagues import AddMemberRequest, JoinLeagueRequest, LeagueCreate
+from app.schemas.leagues import AddMemberRequest, LeagueCreate
 
 
 class LeagueService:
     def __init__(self, repository: LeagueRepository):
         self.repository = repository
 
+    @staticmethod
+    def _generate_invite_code(length: int = 8) -> str:
+        alphabet = string.ascii_uppercase + string.digits
+        return "".join(secrets.choice(alphabet) for _ in range(length))
+
     async def create_league(self, data: LeagueCreate, current_user: User) -> League:
         league = League(
             name=data.name,
             rules=data.rules,
             season=data.season,
+            invite_code=self._generate_invite_code(),
             created_by=current_user.id,
         )
 
@@ -80,12 +88,8 @@ class LeagueService:
 
         return await self.repository.add_member(member)
 
-    async def join_by_code(
-        self,
-        data: JoinLeagueRequest,
-        current_user: User,
-    ) -> LeagueMember:
-        league = await self.repository.get_by_invite_code(data.invite_code)
+    async def join_by_invite_code(self, invite_code: str, current_user: User) -> LeagueMember:
+        league = await self.repository.get_by_invite_code(invite_code)
 
         if league is None:
             raise HTTPException(
@@ -93,12 +97,12 @@ class LeagueService:
                 detail="Invalid invite code",
             )
 
-        existing = await self.repository.get_member(
+        existing_member = await self.repository.get_member(
             user_id=current_user.id,
             league_id=league.id,
         )
 
-        if existing is not None:
+        if existing_member is not None:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail="Already a member of this league",

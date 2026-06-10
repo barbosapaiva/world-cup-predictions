@@ -7,7 +7,7 @@ from app.core.dependencies import get_current_user
 from app.db.connection import get_db_session
 from app.models.users import User
 from app.repositories.leagues import LeagueRepository
-from app.schemas.leagues import AddMemberRequest, JoinLeagueRequest, LeagueCreate, LeagueMemberResponse, LeagueResponse
+from app.schemas.leagues import AddMemberRequest, LeagueCreate, LeagueMemberResponse, LeagueResponse
 from app.services.leagues import LeagueService
 
 router = APIRouter(prefix="/leagues", tags=["Leagues"])
@@ -45,15 +45,6 @@ async def get_league(
     return await service.get_league(league_id)
 
 
-@router.post("/join", response_model=LeagueMemberResponse, status_code=status.HTTP_201_CREATED)
-async def join_league_by_code(
-    data: JoinLeagueRequest,
-    current_user: User = Depends(get_current_user),
-    service: LeagueService = Depends(get_league_service),
-):
-    return await service.join_by_code(data, current_user)
-
-
 @router.post(
     "/{league_id}/members",
     response_model=LeagueMemberResponse,
@@ -66,6 +57,15 @@ async def add_member(
     service: LeagueService = Depends(get_league_service),
 ):
     return await service.add_member(league_id, data, current_user)
+
+
+@router.post("/join/{invite_code}", response_model=LeagueMemberResponse, status_code=status.HTTP_201_CREATED)
+async def join_league(
+    invite_code: str,
+    current_user: User = Depends(get_current_user),
+    service: LeagueService = Depends(get_league_service),
+):
+    return await service.join_by_invite_code(invite_code, current_user)
 
 
 @router.get("/{league_id}/members", response_model=list[LeagueMemberResponse])

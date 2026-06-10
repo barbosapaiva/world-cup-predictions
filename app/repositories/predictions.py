@@ -79,6 +79,14 @@ class PredictionRepository:
         await self.session.refresh(special_prediction)
         return special_prediction
 
+    async def update_special_prediction(
+        self,
+        special_prediction: SpecialPrediction,
+    ) -> SpecialPrediction:
+        await self.session.commit()
+        await self.session.refresh(special_prediction)
+        return special_prediction
+
     async def get_special_prediction(
         self,
         user_id: UUID,

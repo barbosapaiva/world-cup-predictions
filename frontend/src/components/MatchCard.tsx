@@ -31,8 +31,8 @@ export default function MatchCard({ match, teams, prediction, leagueId, onPredic
     R32: 'Oitavos',
     R16: 'Oitavos',
     QF: 'Quartos',
-    SF: 'Meias',
-    '3rd': '3.o Lugar',
+    SF: 'Meias-finais',
+    '3rd': '3.º Lugar',
     F: 'Final',
   };
 
@@ -63,9 +63,11 @@ export default function MatchCard({ match, teams, prediction, leagueId, onPredic
   };
 
   return (
-    <div className={`bg-white border rounded-lg p-4 ${isFinished ? 'opacity-70' : ''}`}>
-      <div className="flex justify-between items-center mb-2">
-        <span className="text-xs text-gray-400">{stageLabel[match.stage] ?? match.stage}</span>
+    <div className={`bg-white border border-gray-200 rounded-xl p-4 shadow-sm ${isFinished ? 'opacity-60' : 'hover:shadow-md transition-shadow'}`}>
+      <div className="flex justify-between items-center mb-3">
+        <span className="text-xs font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
+          {stageLabel[match.stage] ?? match.stage}
+        </span>
         <span className="text-xs text-gray-400">
           {new Date(match.match_date).toLocaleDateString('pt-PT', {
             day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit',
@@ -77,22 +79,24 @@ export default function MatchCard({ match, teams, prediction, leagueId, onPredic
         {/* Home */}
         <div className="flex-1 text-right">
           <div className="flex items-center justify-end gap-2">
-            <span className="font-medium text-sm">{homeName}</span>
-            {homeFlag && <img src={homeFlag} alt="" className="w-6 h-4 object-cover" />}
+            <span className="font-semibold text-sm text-gray-800">{homeName}</span>
+            {homeFlag && <img src={homeFlag} alt="" className="w-6 h-4 object-cover rounded-sm shadow-sm" />}
           </div>
         </div>
 
         {/* Score / Input */}
-        <div className="flex items-center gap-1 min-w-[100px] justify-center">
+        <div className="flex items-center gap-1.5 min-w-[110px] justify-center">
           {isFinished ? (
-            <span className="text-lg font-bold">
-              {match.home_score} - {match.away_score}
-            </span>
+            <div className="bg-gray-800 text-white px-3 py-1 rounded-lg">
+              <span className="text-lg font-bold">{match.home_score} - {match.away_score}</span>
+            </div>
           ) : isPast ? (
             prediction ? (
-              <span className="text-sm text-gray-500">{prediction.home_score} - {prediction.away_score}</span>
+              <span className="text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded-lg">
+                {prediction.home_score} - {prediction.away_score}
+              </span>
             ) : (
-              <span className="text-xs text-gray-400">Fechado</span>
+              <span className="text-xs text-gray-400 bg-gray-50 px-3 py-1 rounded-lg">Fechado</span>
             )
           ) : (
             <>
@@ -102,16 +106,16 @@ export default function MatchCard({ match, teams, prediction, leagueId, onPredic
                 max="20"
                 value={homeScore}
                 onChange={(e) => setHomeScore(e.target.value)}
-                className="w-10 text-center border rounded py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="w-11 text-center border border-gray-300 rounded-lg py-1.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
               />
-              <span className="text-gray-400">-</span>
+              <span className="text-gray-300 font-bold">-</span>
               <input
                 type="number"
                 min="0"
                 max="20"
                 value={awayScore}
                 onChange={(e) => setAwayScore(e.target.value)}
-                className="w-10 text-center border rounded py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="w-11 text-center border border-gray-300 rounded-lg py-1.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
               />
             </>
           )}
@@ -120,8 +124,8 @@ export default function MatchCard({ match, teams, prediction, leagueId, onPredic
         {/* Away */}
         <div className="flex-1">
           <div className="flex items-center gap-2">
-            {awayFlag && <img src={awayFlag} alt="" className="w-6 h-4 object-cover" />}
-            <span className="font-medium text-sm">{awayName}</span>
+            {awayFlag && <img src={awayFlag} alt="" className="w-6 h-4 object-cover rounded-sm shadow-sm" />}
+            <span className="font-semibold text-sm text-gray-800">{awayName}</span>
           </div>
         </div>
       </div>
@@ -132,18 +136,18 @@ export default function MatchCard({ match, teams, prediction, leagueId, onPredic
           <button
             onClick={handleSubmit}
             disabled={saving || homeScore === '' || awayScore === ''}
-            className="text-xs bg-blue-600 text-white px-4 py-1.5 rounded hover:bg-blue-700 disabled:opacity-50"
+            className="text-xs bg-emerald-600 text-white px-5 py-1.5 rounded-lg hover:bg-emerald-700 disabled:opacity-40 font-medium transition-colors"
           >
             {saving ? 'A guardar...' : prediction ? 'Atualizar' : 'Submeter'}
           </button>
         </div>
       )}
 
-      {error && <p className="text-red-500 text-xs text-center mt-1">{error}</p>}
+      {error && <p className="text-red-500 text-xs text-center mt-2">{error}</p>}
 
-      {prediction && !isPast && (
-        <p className="text-green-600 text-xs text-center mt-1">
-          Previsao: {prediction.home_score} - {prediction.away_score}
+      {prediction && !isPast && !isFinished && (
+        <p className="text-emerald-600 text-xs text-center mt-2 font-medium">
+          Previsão: {prediction.home_score} - {prediction.away_score}
         </p>
       )}
     </div>

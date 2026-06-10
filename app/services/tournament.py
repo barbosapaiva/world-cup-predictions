@@ -80,6 +80,9 @@ class TournamentService:
 
         return await self.repository.create_player(player)
 
+    async def list_players(self) -> list[Player]:
+        return await self.repository.list_players()
+
     async def list_players_by_team(self, team_id: UUID) -> list[Player]:
         team = await self.repository.get_team_by_id(team_id)
 

@@ -169,6 +169,14 @@ class PredictionService:
         await self._validate_league_membership(data.league_id, current_user.id)
         self._validate_special_prediction_target(data)
 
+        # Deadline: before end of group stage
+        last_group_match = await self._get_last_group_stage_match()
+        if last_group_match and datetime.now(UTC) >= last_group_match.submission_deadline:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Special predictions deadline has passed (group stage ended)",
+            )
+
         existing_prediction = await self.prediction_repository.get_special_prediction(
             user_id=current_user.id,
             league_id=data.league_id,
@@ -176,10 +184,10 @@ class PredictionService:
         )
 
         if existing_prediction is not None:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail="Special prediction already exists for this category and league",
-            )
+            existing_prediction.team_id = data.team_id
+            existing_prediction.player_id = data.player_id
+            existing_prediction.submitted_at = datetime.now(UTC)
+            return await self.prediction_repository.update_special_prediction(existing_prediction)
 
         special_prediction = SpecialPrediction(
             user_id=current_user.id,
@@ -190,6 +198,13 @@ class PredictionService:
         )
 
         return await self.prediction_repository.create_special_prediction(special_prediction)
+
+    async def _get_last_group_stage_match(self) -> Match | None:
+        matches = await self.tournament_repository.list_matches()
+        group_matches = [m for m in matches if m.stage == MatchStage.GROUP]
+        if not group_matches:
+            return None
+        return max(group_matches, key=lambda m: m.match_date)
 
     async def list_my_special_predictions(
         self,

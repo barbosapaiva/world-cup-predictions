@@ -67,6 +67,14 @@ async def create_player(
     return await service.create_player(data, current_user)
 
 
+@router.get("/players", response_model=list[PlayerResponse])
+async def list_players(
+    current_user: User = Depends(get_current_user),
+    service: TournamentService = Depends(get_tournament_service),
+):
+    return await service.list_players()
+
+
 @router.get("/teams/{team_id}/players", response_model=list[PlayerResponse])
 async def list_players_by_team(
     team_id: UUID,

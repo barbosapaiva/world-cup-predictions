@@ -1,5 +1,5 @@
 import api from './client';
-import type { Match, Team } from './types';
+import type { Match, Team, Player } from './types';
 
 export async function listMatches(): Promise<Match[]> {
   const res = await api.get<Match[]>('/matches');
@@ -13,5 +13,10 @@ export async function getMatch(id: string): Promise<Match> {
 
 export async function listTeams(): Promise<Team[]> {
   const res = await api.get<Team[]>('/teams');
+  return res.data;
+}
+
+export async function listPlayers(): Promise<Player[]> {
+  const res = await api.get<Player[]>('/players');
   return res.data;
 }

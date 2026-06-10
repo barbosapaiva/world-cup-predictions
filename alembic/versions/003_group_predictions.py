@@ -5,16 +5,18 @@ Revises: 002_invite_code
 Create Date: 2026-06-11
 
 """
-from typing import Sequence, Union
 
-from alembic import op
+from collections.abc import Sequence
+
 import sqlalchemy as sa
 from sqlalchemy.dialects.postgresql import UUID
 
+from alembic import op
+
 revision: str = "003_group_predictions"
-down_revision: Union[str, None] = "002_invite_code"
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | None = "002_invite_code"
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
@@ -32,7 +34,9 @@ def upgrade() -> None:
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("NOW()")),
         sa.Column("points_awarded", sa.Integer(), nullable=True),
         sa.UniqueConstraint("user_id", "league_id", "group_letter", name="uq_group_pred_user_league_group"),
-        sa.CheckConstraint("points_awarded IS NULL OR (points_awarded >= 0 AND points_awarded <= 4)", name="chk_group_pred_points"),
+        sa.CheckConstraint(
+            "points_awarded IS NULL OR (points_awarded >= 0 AND points_awarded <= 4)", name="chk_group_pred_points"
+        ),
         sa.CheckConstraint(
             "first_team_id != second_team_id AND first_team_id != third_team_id AND first_team_id != fourth_team_id "
             "AND second_team_id != third_team_id AND second_team_id != fourth_team_id "
