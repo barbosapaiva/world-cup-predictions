@@ -32,11 +32,7 @@ class Settings(BaseSettings):
         if not self.cors_origins:
             return []
 
-        return [
-            origin.strip()
-            for origin in self.cors_origins.split(",")
-            if origin.strip()
-        ]
+        return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
 
     @property
     def database_url(self) -> str:
