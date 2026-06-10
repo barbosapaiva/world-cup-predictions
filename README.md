@@ -235,7 +235,8 @@ Available documentation:
 - [Data Model](docs/data_model.md)
 - [Glossary](docs/glossary.md)
 - [Roadmap](docs/roadmap.md)
-
+- [Decision log](docs/decisions.md)
+  
 Available diagrams:
 
 - [Initial Domain Model](docs/history/initial-domain-model.png)
@@ -249,7 +250,6 @@ Planned documentation:
 - Use cases
 - API documentation
 - Deployment
-- Decision log
 - Additional diagrams
 
 ---
