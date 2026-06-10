@@ -2,6 +2,7 @@ from uuid import UUID
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import joinedload
 
 from app.models.leagues import League, LeagueMember
 
@@ -63,9 +64,18 @@ class LeagueRepository:
 
     async def list_members(self, league_id: UUID) -> list[LeagueMember]:
         result = await self.session.execute(
-            select(LeagueMember).where(LeagueMember.league_id == league_id).order_by(LeagueMember.joined_at.asc())
+            select(LeagueMember)
+            .options(joinedload(LeagueMember.user))
+            .where(LeagueMember.league_id == league_id)
+            .order_by(LeagueMember.joined_at.asc())
         )
         return list(result.scalars().all())
+
+    async def get_by_invite_code(self, invite_code: str) -> League | None:
+        result = await self.session.execute(
+            select(League).where(League.invite_code == invite_code.upper())
+        )
+        return result.scalar_one_or_none()
 
     async def update(self, league: League) -> League:
         await self.session.commit()

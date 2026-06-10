@@ -18,6 +18,7 @@ class LeagueResponse(BaseModel):
     name: str
     rules: str | None
     season: str
+    invite_code: str
     created_by: UUID
     created_at: datetime
     model_config = {"from_attributes": True}
@@ -29,9 +30,14 @@ class AddMemberRequest(BaseModel):
     role: UserRole = UserRole.PARTICIPANT
 
 
+class JoinLeagueRequest(BaseModel):
+    invite_code: str
+
+
 class LeagueMemberResponse(BaseModel):
     id: UUID
     user_id: UUID
+    user_name: str
     league_id: UUID
     role: UserRole
     joined_at: datetime

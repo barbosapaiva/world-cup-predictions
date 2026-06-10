@@ -3,6 +3,7 @@ from uuid import UUID
 from sqlalchemy import case, desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.group_predictions import GroupPrediction
 from app.models.leagues import LeagueMember
 from app.models.predictions import (
     Prediction,
@@ -33,15 +34,26 @@ class RankingRepository:
             .scalar_subquery()
         )
 
+        group_points_subq = (
+            select(func.coalesce(func.sum(GroupPrediction.points_awarded), 0))
+            .where(
+                GroupPrediction.user_id == User.id,
+                GroupPrediction.league_id == league_id,
+            )
+            .correlate(User)
+            .scalar_subquery()
+        )
+
         match_points = func.coalesce(func.sum(PredictionScore.total_points), 0)
 
         result = await self.session.execute(
             select(
                 User.id.label("user_id"),
                 User.name.label("name"),
-                (match_points + special_points_subq).label("total_points"),
+                (match_points + special_points_subq + group_points_subq).label("total_points"),
                 match_points.label("match_points"),
                 special_points_subq.label("special_prediction_points"),
+                group_points_subq.label("group_prediction_points"),
                 func.coalesce(
                     func.sum(
                         case(
@@ -103,6 +115,7 @@ class RankingRepository:
                     "exact_scores": row["exact_scores"],
                     "outcome_hits": row["outcome_hits"],
                     "group_position_points": row["group_position_points"],
+                    "group_prediction_points": row["group_prediction_points"],
                 }
             )
 

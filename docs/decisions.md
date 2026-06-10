@@ -80,3 +80,27 @@ A single Droplet handles the expected load for a small group of friends. If the 
 **Decision:** A single invite code stored as an environment variable (`INVITE_CODE`). The registration endpoint requires this code. Everyone who should have access gets the same code shared privately.
 
 **Rationale:** For a friends-only platform, a full invite system with per-user codes, expiration dates, and usage limits is overkill. A single shared code is enough to keep strangers out. It's zero-migration since no new tables are needed, and the code lives in `.env.prod` alongside the other secrets. If the code leaks, we just change the env var and restart. If we later need per-user invites, we can add an `invite_codes` table without breaking anything.
+
+---
+
+## ADR-008: Per-league invite codes
+
+**Context:** With multiple leagues possible, we needed a way for users to join a specific league without requiring an admin to manually add them. The global invite code (ADR-007) controls registration, but league membership needed its own mechanism.
+
+**Decision:** Each league gets a unique 8-character invite code generated automatically on creation. Users join by entering the code. The code is stored in `leagues.invite_code` (unique, not null).
+
+**Rationale:** This keeps the flow simple: create a league, share the code with friends, they join themselves. No admin approval step needed for a friends-only platform. The code is auto-generated from a UUID to avoid collisions. If a code leaks, the league admin can see who joined and remove unwanted members. A more complex system with expiring or single-use codes wasn't needed for this scale.
+
+---
+
+## ADR-009: Explicit group predictions
+
+**Context:** The scoring system had a `group_position_points` field in `prediction_scores` but no mechanism for users to predict group standings. Colleagues proposed adding this feature while there was still time before the tournament.
+
+**Decision:** Add explicit group predictions as a new prediction type. Users predict the final order (1st through 4th) for each group before the group's first match. Scoring awards 1 point per correct position (max 4 per group, 48 total).
+
+**Rationale:** Two approaches were considered: deriving standings from match predictions (simulating a table from the predicted scores) or having users explicitly predict the order. Explicit prediction was chosen because it's clearer to the user, simpler to implement, and creates a distinct prediction type that's independently valuable.
+
+The deadline is per-group (before the first match of that group) rather than a global deadline, giving users more time to adjust as the tournament unfolds. Scoring is stored directly on the `group_predictions` row (`points_awarded`) rather than in a separate scores table, since the relationship is 1:1 and there's no need for recalculation history.
+
+**Trade-offs accepted:** The `group_position_points` field in `prediction_scores` becomes unused. It remains in the schema for backward compatibility but is always 0. Group prediction points are summed separately in the ranking query via a subquery on `group_predictions.points_awarded`.

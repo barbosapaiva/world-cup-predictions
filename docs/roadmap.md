@@ -64,6 +64,14 @@ The goal of this phase is to build a complete platform capable of running privat
 - [x] List user predictions
 - [x] List match predictions
 
+### Group Predictions
+
+- [x] Submit group predictions (1st to 4th per group)
+- [x] Validate teams belong to the group
+- [x] Enforce deadline before first match of each group
+- [x] Calculate group position points (1 point per correct position)
+- [x] Include group prediction points in ranking
+
 ### Special Predictions
 
 - [x] Submit champion prediction
@@ -78,7 +86,7 @@ The goal of this phase is to build a complete platform capable of running privat
 
 - [x] Calculate exact score points
 - [x] Calculate 1X2 outcome points
-- [ ] Calculate group position points
+- [x] Calculate group position points
 - [x] Calculate special prediction points
 - [x] Recalculate scores after result updates
 - [x] Store calculated scores separately from predictions
@@ -147,11 +155,11 @@ These improvements can be implemented gradually throughout both phases.
 
 ### CI/CD
 
-- [ ] GitHub Actions
+- [x] GitHub Actions
 - [ ] Ruff check
 - [ ] Ruff format check
 - [ ] Test execution in CI
-- [ ] Docker build validation
+- [x] Docker build validation
 
 ### Documentation
 
@@ -163,7 +171,7 @@ These improvements can be implemented gradually throughout both phases.
 - [ ] Business rules
 - [ ] Use cases
 - [ ] Deployment documentation
-- [ ] Decision log
+- [x] Decision log
 
 ---
 
