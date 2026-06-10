@@ -1,6 +1,7 @@
 FROM python:3.14-slim
 
 WORKDIR /app
+ENV PYTHONPATH=/app
 
 COPY pyproject.toml uv.lock ./
 
@@ -10,6 +11,8 @@ RUN uv sync --frozen --no-dev
 COPY app ./app
 COPY pipelines ./pipelines
 COPY sql ./sql
+COPY alembic ./alembic
+COPY alembic.ini ./
 
 EXPOSE 8000
 
