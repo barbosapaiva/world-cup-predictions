@@ -3,6 +3,7 @@ from uuid import UUID
 from fastapi import HTTPException, status
 
 from app.core.security import hash_password
+from app.core.settings import settings
 from app.models.users import User
 from app.repositories.users import UserRepository
 from app.schemas.users import UserCreate, UserUpdate
@@ -13,8 +14,13 @@ class UserService:
         self.repository = repository
 
     async def create_user(self, data: UserCreate) -> User:
-        email = str(data.email)
+        if settings.invite_code and data.invite_code != settings.invite_code:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Invalid invite code",
+            )
 
+        email = str(data.email)
         existing = await self.repository.get_by_email(email)
         if existing:
             raise HTTPException(

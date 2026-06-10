@@ -71,3 +71,12 @@ Running your own server, configuring Nginx, setting up SSL with Certbot, and wri
 A single Droplet handles the expected load for a small group of friends. If the platform grows, we can scale vertically ($12/month for 2 GB RAM) or migrate to a managed solution.
 
 **Trade-offs accepted:** We handle our own backups, SSL renewal, and security updates. There's no auto-scaling and it's a single point of failure. These are acceptable for an MVP with a small user base.
+---
+
+## ADR-007: Global invite code for registration
+
+**Context:** The platform is for a small group of friends. We needed a way to prevent random people from registering while keeping the sign-up process simple.
+
+**Decision:** A single invite code stored as an environment variable (`INVITE_CODE`). The registration endpoint requires this code. Everyone who should have access gets the same code shared privately.
+
+**Rationale:** For a friends-only platform, a full invite system with per-user codes, expiration dates, and usage limits is overkill. A single shared code is enough to keep strangers out. It's zero-migration since no new tables are needed, and the code lives in `.env.prod` alongside the other secrets. If the code leaks, we just change the env var and restart. If we later need per-user invites, we can add an `invite_codes` table without breaking anything.

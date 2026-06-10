@@ -18,6 +18,8 @@ class Settings(BaseSettings):
 
     cors_origins: str
 
+    invite_code: str = ""
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
