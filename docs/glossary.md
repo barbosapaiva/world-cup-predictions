@@ -42,6 +42,10 @@ Its purpose is to keep terminology consistent across the codebase, documentation
 | Submission Deadline | Latest moment a prediction can be created or modified. |
 | Exact Score | A prediction where the participant correctly guesses the final score of a match. |
 | Outcome | The final result type of a match: home win, draw, or away win. |
+| Group Prediction | A participant's predicted final order (1st to 4th) for a group. |
+| Group Standings | The actual final classification of teams within a group, computed from match results. |
+| Group Position Points | Points awarded for correctly predicting the final position of a team in a group. 1 point per correct position. |
+| Invite Code | A unique code used to join a league. Each league generates one automatically on creation. |
 
 ---
 

@@ -13,5 +13,6 @@ class RankingEntryResponse(BaseModel):
     exact_scores: int
     outcome_hits: int
     group_position_points: int
+    group_prediction_points: int
 
     model_config = {"from_attributes": True}
