@@ -156,6 +156,8 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+!.env.prod.example
+!.env.example
 
 # Spyder project settings
 .spyderproject
@@ -228,3 +230,9 @@ data/samples/*
 # Node
 node_modules/
 package-lock.json
+
+# Backups
+backups/
+
+# SSL certs
+certbot/

@@ -1,0 +1,73 @@
+# Architecture Decision Records
+
+## ADR-001: PostgreSQL as primary database
+
+**Context:** We needed a database for storing users, leagues, matches, predictions, and rankings. The main candidates were PostgreSQL (relational) and MongoDB (document).
+
+**Decision:** PostgreSQL.
+
+**Rationale:** The data model is heavily relational. Users belong to leagues, predictions reference matches and users, rankings aggregate across predictions. PostgreSQL's foreign keys, joins, and constraints enforce data integrity at the DB level. Custom ENUM types (`match_stage`, `match_status`, `player_position`) map cleanly to domain concepts. MongoDB would require manual join logic and denormalization that adds complexity without benefit for this use case.
+
+---
+
+## ADR-002: SQLAlchemy 2.0 with async (asyncpg)
+
+
+**Context:** FastAPI is async-native. We needed an ORM/query layer that works well with `async/await` and PostgreSQL.
+
+**Decision:** SQLAlchemy 2.0 with `asyncpg` driver via `create_async_engine`.
+
+**Rationale:** SQLAlchemy 2.0 has first-class async support. Using `asyncpg` gives us high-performance async PostgreSQL access without blocking the event loop. Alembic handles migrations. The alternative (raw asyncpg queries) would sacrifice the ORM's model validation and migration tooling.
+
+One gotcha worth documenting: asyncpg uses `$1, $2` positional params, so the `::type` cast syntax conflicts with SQLAlchemy's `:param` bind syntax. We use `CAST(:param AS type)` instead throughout the codebase.
+
+---
+
+## ADR-003: JWT authentication (stateless)
+
+
+**Context:** The API needs user authentication. Options considered were session-based (server-side state), JWT (stateless tokens), and OAuth (third-party providers).
+
+**Decision:** JWT Bearer tokens with `PyJWT` and `bcrypt` for password hashing.
+
+**Rationale:** Stateless auth fits our single-server architecture since no session store is needed. Tokens are stored in `localStorage` on the frontend and sent as `Authorization: Bearer <token>`. Token expiry is configurable via `JWT_ACCESS_TOKEN_EXPIRE_MINUTES`. For an MVP with a small user base, this is simpler than setting up OAuth providers. We can add OAuth later if needed.
+
+---
+
+## ADR-004: Global tournament data, independent leagues
+
+
+**Context:** The platform needs to support multiple friend groups playing against each other. We had to decide how matches, teams, and predictions relate to leagues.
+
+**Decision:** Tournament data (teams, matches, players) is global. Leagues are independent scoring groups where users make one prediction per match, and that prediction counts in all their leagues.
+
+**Rationale:** The World Cup is the same for everyone, so duplicating matches per league would be redundant. One prediction per match simplifies the UX since there's no need to submit separately for each league. Rankings are computed per league by aggregating the same predictions with different member lists. This keeps the data model clean and the user experience simple.
+
+---
+
+## ADR-005: Store submission deadlines in the database
+
+
+**Context:** Predictions must be locked before match kickoff. We needed to decide where to enforce deadlines.
+
+**Decision:** Each match row has a `submission_deadline` column (timestamptz), set to the match `datetime` by default. The API checks this before accepting predictions.
+
+**Rationale:** Storing deadlines in the DB rather than computing them from match time minus N minutes gives us flexibility to adjust deadlines per match if needed, for example in case of delayed kickoffs. The check happens server-side in the prediction endpoint, so the frontend deadline display is cosmetic. The real enforcement is in the API.
+
+---
+
+## ADR-006: Deploy on DigitalOcean Droplet with Docker Compose
+
+**Context:** We needed a hosting solution for the MVP. Candidates considered were DigitalOcean Droplet, Vercel with a managed DB, Railway, Fly.io, and AWS EC2.
+
+**Decision:** Single DigitalOcean Droplet ($4-6/month) running Docker Compose with Nginx, FastAPI, React, and PostgreSQL.
+
+**Rationale:** At $4-6/month for a Basic Droplet (1 vCPU, 1 GB RAM, 25 GB SSD), this is the cheapest option that gives full control. Railway and Fly.io charge per-service and can exceed $15-20/month for the same stack. AWS EC2 has similar pricing but more operational complexity.
+
+Docker Compose mirrors the dev setup, so it's the same `docker compose up` workflow locally and in production with no new tools to learn. We own the server, meaning we can SSH in, inspect logs, run database queries, and debug issues directly. Managed platforms abstract this away, which is great for teams but limits learning.
+
+Running your own server, configuring Nginx, setting up SSL with Certbot, and writing backup scripts also demonstrates ops skills that managed platforms hide, which adds portfolio value.
+
+A single Droplet handles the expected load for a small group of friends. If the platform grows, we can scale vertically ($12/month for 2 GB RAM) or migrate to a managed solution.
+
+**Trade-offs accepted:** We handle our own backups, SSL renewal, and security updates. There's no auto-scaling and it's a single point of failure. These are acceptable for an MVP with a small user base.
