@@ -48,7 +48,6 @@ services:
       - "5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
-      - ./sql/migrations:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-worldcup} -d ${POSTGRES_DB:-worldcup_predictions}"]
       interval: 10s
