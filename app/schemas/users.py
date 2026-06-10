@@ -8,6 +8,7 @@ class UserCreate(BaseModel):
     name: str
     email: EmailStr
     password: str
+    invite_code: str
 
 
 class UserUpdate(BaseModel):
