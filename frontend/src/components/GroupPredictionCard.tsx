@@ -106,7 +106,12 @@ export default function GroupPredictionCard({ groupLetter, teams, leagueId, exis
         })}
       </div>
 
-      <div className="mt-3 flex justify-end">
+      <div className="mt-3 flex items-center justify-between">
+        {existing?.updated_at ? (
+          <span className="text-xs text-gray-400">
+            Atualizado: {new Date(existing.updated_at).toLocaleDateString('pt-PT', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+          </span>
+        ) : <span />}
         {saved ? (
           <span className="text-xs text-emerald-600 font-medium">Guardado</span>
         ) : (
@@ -115,7 +120,7 @@ export default function GroupPredictionCard({ groupLetter, teams, leagueId, exis
             disabled={!allSelected || saving}
             className="text-xs font-medium px-3 py-1.5 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
-            {saving ? 'A guardar...' : 'Guardar'}
+            {saving ? 'A guardar...' : existing ? 'Atualizar' : 'Guardar'}
           </button>
         )}
       </div>

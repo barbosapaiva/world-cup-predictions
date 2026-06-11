@@ -64,7 +64,11 @@ export default function LeagueDetailPage() {
     setLoading(false);
   };
 
-  useEffect(() => { loadData(); }, [leagueId]);
+  useEffect(() => {
+    setLoading(true);
+    setTab('jogos');
+    loadData();
+  }, [leagueId]);
 
   if (loading) {
     return (

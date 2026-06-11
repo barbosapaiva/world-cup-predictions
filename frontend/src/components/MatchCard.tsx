@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { Match, Team, Prediction } from '../api/types';
 import { createPrediction, updatePrediction } from '../api/predictions';
 
@@ -13,6 +13,11 @@ interface Props {
 export default function MatchCard({ match, teams, prediction, leagueId, onPredictionSaved }: Props) {
   const [homeScore, setHomeScore] = useState(prediction?.home_score?.toString() ?? '');
   const [awayScore, setAwayScore] = useState(prediction?.away_score?.toString() ?? '');
+
+  useEffect(() => {
+    setHomeScore(prediction?.home_score?.toString() ?? '');
+    setAwayScore(prediction?.away_score?.toString() ?? '');
+  }, [prediction?.home_score, prediction?.away_score]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
