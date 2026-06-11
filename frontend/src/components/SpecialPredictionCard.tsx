@@ -149,7 +149,12 @@ export default function SpecialPredictionCard({
         </div>
       )}
 
-      <div className="mt-3 flex justify-end">
+      <div className="mt-3 flex items-center justify-between">
+        {existing?.submitted_at ? (
+          <span className="text-xs text-gray-400">
+            Atualizado: {new Date(existing.submitted_at).toLocaleDateString('pt-PT', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+          </span>
+        ) : <span />}
         {saved ? (
           <span className="text-xs text-emerald-600 font-medium">Guardado</span>
         ) : (
