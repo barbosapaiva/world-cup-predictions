@@ -36,6 +36,17 @@ def upgrade() -> None:
         """
         DO $$
         BEGIN
+            CREATE TYPE user_role AS ENUM ('admin', 'participant');
+        EXCEPTION
+            WHEN duplicate_object THEN NULL;
+        END $$;
+        """
+    )
+
+    op.execute(
+        """
+        DO $$
+        BEGIN
             CREATE TYPE player_position AS ENUM ('GK', 'DF', 'MF', 'FW');
         EXCEPTION
             WHEN duplicate_object THEN NULL;
