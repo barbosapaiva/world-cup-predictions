@@ -1,6 +1,7 @@
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, status
+from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.dependencies import get_current_user
@@ -59,13 +60,17 @@ async def add_member(
     return await service.add_member(league_id, data, current_user)
 
 
-@router.post("/join/{invite_code}", response_model=LeagueMemberResponse, status_code=status.HTTP_201_CREATED)
+class JoinLeagueRequest(BaseModel):
+    invite_code: str
+
+
+@router.post("/join", response_model=LeagueMemberResponse, status_code=status.HTTP_201_CREATED)
 async def join_league(
-    invite_code: str,
+    data: JoinLeagueRequest,
     current_user: User = Depends(get_current_user),
     service: LeagueService = Depends(get_league_service),
 ):
-    return await service.join_by_invite_code(invite_code, current_user)
+    return await service.join_by_invite_code(data.invite_code, current_user)
 
 
 @router.get("/{league_id}/members", response_model=list[LeagueMemberResponse])
