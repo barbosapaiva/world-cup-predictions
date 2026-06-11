@@ -29,7 +29,8 @@ The data model is organised around six main domains:
 4. Predictions
 5. Special Predictions
 6. Group Predictions
-7. Audit
+7. External Links
+8. Audit
 
 ---
 
@@ -239,7 +240,37 @@ Unlike match predictions which target individual games, group predictions target
 
 ---
 
-## 7. Audit
+## 7. External Links
+
+The `external_links` domain is responsible for mapping internal entities to external data providers.
+
+### Main entity
+
+- `match_external_links`
+
+### Purpose
+
+The `match_external_links` table connects internal match UUIDs to external provider IDs (e.g. football-data.org API match IDs). This decouples the internal data model from any specific external source and supports multiple providers simultaneously.
+
+The table is used by the ETL pipeline during initial data import and by the sync pipeline when fetching match results.
+
+### Key rules
+
+- Each match can have one link per provider.
+- The same external ID cannot be linked to multiple matches within the same provider.
+- The `provider` field is a free-text identifier (e.g. `football-data.org`, `api-football`).
+- The `external_id` field is stored as text to support different ID formats across providers.
+- Links are populated automatically during the ETL load step.
+
+### Key relationships
+
+- `match_external_links.match_id` references `matches.id` (CASCADE on delete).
+- Primary key: `(match_id, provider)`.
+- Unique constraint: `(provider, external_id)`.
+
+---
+
+## 8. Audit
 
 The `audit` domain is responsible for tracking important system actions.
 

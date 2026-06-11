@@ -104,3 +104,23 @@ A single Droplet handles the expected load for a small group of friends. If the 
 The deadline is per-group (before the first match of that group) rather than a global deadline, giving users more time to adjust as the tournament unfolds. Scoring is stored directly on the `group_predictions` row (`points_awarded`) rather than in a separate scores table, since the relationship is 1:1 and there's no need for recalculation history.
 
 **Trade-offs accepted:** The `group_position_points` field in `prediction_scores` becomes unused. It remains in the schema for backward compatibility but is always 0. Group prediction points are summed separately in the ranking query via a subquery on `group_predictions.points_awarded`.
+
+---
+
+## ADR-010: Generic external link table instead of external_match_id
+
+**Context:** The sync results pipeline needs to map API match IDs from football-data.org to internal match UUIDs. The initial approach added an `external_match_id` column directly to the `matches` table, tightly coupling the schema to a single provider.
+
+**Decision:** Replace `external_match_id` with a generic `match_external_links` table with composite key `(match_id, provider)` and a unique constraint on `(provider, external_id)`.
+
+**Rationale:** Three approaches were considered:
+
+1. `external_match_id` column on `matches` — simple, but couples the schema to one provider and pollutes the core table with ETL concerns.
+2. Staging table + link table — staging for raw API data, link table for mapping. The staging table turned out to be redundant since raw JSON is already saved to `data/raw/` by the ETL pipeline.
+3. Link table only — clean separation between internal and external identifiers, supports multiple providers, and the ETL pipeline upserts matches normally then populates links in the same transaction.
+
+Option 3 was chosen. The `matches` table stays clean with no external references. Adding a second data provider (e.g. `api-football`) requires no schema changes — just insert rows with a different `provider` value.
+
+The ETL load step uses `RETURNING id` on the match upsert to get the UUID, then immediately inserts the external link. The sync pipeline joins through `match_external_links` to find which internal match corresponds to each API result.
+
+**Trade-offs accepted:** An extra JOIN is required when syncing results. For ~100 matches this has no measurable performance impact. The `external_id` is stored as text rather than integer to support providers that use non-numeric identifiers.

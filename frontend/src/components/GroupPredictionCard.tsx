@@ -7,10 +7,11 @@ interface Props {
   teams: Team[];
   leagueId: string;
   existing: GroupPrediction | null;
+  locked?: boolean;
   onSaved: () => void;
 }
 
-export default function GroupPredictionCard({ groupLetter, teams, leagueId, existing, onSaved }: Props) {
+export default function GroupPredictionCard({ groupLetter, teams, leagueId, existing, locked = false, onSaved }: Props) {
   const [positions, setPositions] = useState<(string | null)[]>([null, null, null, null]);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -89,7 +90,8 @@ export default function GroupPredictionCard({ groupLetter, teams, leagueId, exis
               <select
                 value={positions[i] || ''}
                 onChange={(e) => handleSelect(i, e.target.value)}
-                className="flex-1 text-sm border border-gray-200 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                disabled={locked}
+                className={`flex-1 text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-emerald-500 ${locked ? 'bg-gray-50 text-gray-400 cursor-not-allowed' : 'bg-white'}`}
               >
                 <option value="">Selecionar...</option>
                 {teams.map((t) => (
@@ -112,7 +114,9 @@ export default function GroupPredictionCard({ groupLetter, teams, leagueId, exis
             Atualizado: {new Date(existing.updated_at).toLocaleDateString('pt-PT', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
           </span>
         ) : <span />}
-        {saved ? (
+        {locked ? (
+          <span className="text-xs text-gray-400 font-medium">Previsões encerradas</span>
+        ) : saved ? (
           <span className="text-xs text-emerald-600 font-medium">Guardado</span>
         ) : (
           <button

@@ -156,6 +156,7 @@ def transform_matches(raw_matches: dict, raw_teams: dict) -> pd.DataFrame:
         rows.append(
             {
                 "match_number": i,
+                "external_match_id": m["id"],
                 "stage": stage_db,
                 "group_letter": _extract_group_letter(m.get("group")),
                 "home_team_code": home_tla,

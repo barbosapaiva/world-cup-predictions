@@ -104,9 +104,10 @@ The goal of this phase is to build a complete platform capable of running privat
 - [x] Import teams
 - [x] Import players
 - [x] Import matches
-- [ ] Import match results
+- [x] Import match results (sync pipeline via football-data.org API)
+- [x] Map external provider IDs via `match_external_links`
 - [x] Validate imported data
-- [ ] Log import executions
+- [ ] Log import executions (etl_runs / import_logs)
 
 ---
 

@@ -80,7 +80,7 @@ export default function RankingPage() {
                   <th className="px-4 py-3 text-left text-gray-500 font-medium">#</th>
                   <th className="px-4 py-3 text-left text-gray-500 font-medium">Nome</th>
                   <th className="px-4 py-3 text-right text-gray-500 font-medium">Total</th>
-                  <th className="px-4 py-3 text-right text-gray-500 font-medium hidden sm:table-cell">Jogos</th>
+                  <th className="px-4 py-3 text-right text-gray-500 font-medium hidden sm:table-cell">Pts Jogos</th>
                   <th className="px-4 py-3 text-right text-gray-500 font-medium hidden sm:table-cell">Especiais</th>
                   <th className="px-4 py-3 text-right text-gray-500 font-medium">Exatos</th>
                 </tr>
