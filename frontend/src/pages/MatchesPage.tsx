@@ -5,6 +5,7 @@ import { listMyPredictions } from '../api/predictions';
 import type { Match, Team, Prediction } from '../api/types';
 import MatchCard from '../components/MatchCard';
 import BracketView from '../components/BracketView';
+import KnockoutMatrix from '../components/KnockoutMatrix';
 import { useLeague } from '../context/LeagueContext';
 
 type ViewMode = 'list' | 'bracket';
@@ -141,7 +142,10 @@ export default function MatchesPage() {
       </div>
 
       {view === 'bracket' ? (
-        <BracketView matches={knockoutMatches} teams={teams} />
+        <>
+          <KnockoutMatrix matches={matches} teams={teams} />
+          <BracketView matches={knockoutMatches} teams={teams} />
+        </>
       ) : (
         <>
           <div className="flex gap-2 mb-6">

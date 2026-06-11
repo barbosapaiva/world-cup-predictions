@@ -33,7 +33,7 @@ export default function MatchCard({ match, teams, prediction, leagueId, onPredic
 
   const stageLabel: Record<string, string> = {
     group: `Grupo ${match.group_letter ?? ''}`,
-    R32: 'Oitavos',
+    R32: '16 Avos',
     R16: 'Oitavos',
     QF: 'Quartos',
     SF: 'Meias-finais',
@@ -152,7 +152,7 @@ export default function MatchCard({ match, teams, prediction, leagueId, onPredic
 
       {prediction && !isPast && !isFinished && (
         <p className="text-emerald-600 text-xs text-center mt-2 font-medium">
-          Previsão: {prediction.home_score} - {prediction.away_score}
+          Aposta: {prediction.home_score} - {prediction.away_score}
         </p>
       )}
     </div>
