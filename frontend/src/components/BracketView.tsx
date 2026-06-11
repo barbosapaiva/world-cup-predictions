@@ -1,3 +1,4 @@
+import { useRef, useState, useEffect } from 'react';
 import type { Match, Team } from '../api/types';
 
 interface Props {
@@ -6,11 +7,11 @@ interface Props {
 }
 
 // Layout
-const CARD_W = 180;
-const CARD_H = 52;
-const V_GAP = 12; // vertical gap between cards in same round
-const COL_GAP = 60; // horizontal gap between rounds
-const PAD = 20;
+const CARD_W = 160;
+const CARD_H = 48;
+const V_GAP = 8; // vertical gap between cards in same round
+const COL_GAP = 36; // horizontal gap between rounds
+const PAD = 12;
 
 function getTeamName(match: Match, teams: Record<string, Team>, side: 'home' | 'away'): string {
   const teamId = side === 'home' ? match.home_team_id : match.away_team_id;
@@ -50,7 +51,7 @@ function TeamRow({
   isTop: boolean;
   flip?: boolean;
 }) {
-  const displayName = name.length > 14 ? name.slice(0, 12) + '…' : name;
+  const displayName = name.length > 12 ? name.slice(0, 10) + '…' : name;
 
   return (
     <div
@@ -198,6 +199,9 @@ function ConnectorLines({
 }
 
 export default function BracketView({ matches, teams }: Props) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(1);
+
   // Organize matches by stage
   const getStageMatches = (stages: string[]) =>
     matches
@@ -288,7 +292,30 @@ export default function BracketView({ matches, teams }: Props) {
   const svgHeight = totalHeight + 120 + (thirdPlace.length > 0 ? CARD_H + 50 : 0);
 
   // Stage labels
-  const stageLabels = ['Oitavos', 'Quartos', 'Meias'];
+  const stageLabels = ['16 Avos', 'Oitavos', 'Meias'];
+
+  // Auto-scale to fit viewport
+  useEffect(() => {
+    const update = () => {
+      if (!containerRef.current) return;
+      const parent = containerRef.current.parentElement;
+      if (!parent) return;
+      const availW = parent.clientWidth;
+      const availH = window.innerHeight - containerRef.current.getBoundingClientRect().top - 16;
+      const isMobile = availW < 640;
+      if (isMobile) {
+        // On mobile: fit height, allow horizontal scroll
+        setScale(Math.min(availH / svgHeight, 0.45));
+      } else {
+        const scaleW = availW / totalWidth;
+        const scaleH = availH / svgHeight;
+        setScale(Math.min(scaleW, scaleH, 1));
+      }
+    };
+    update();
+    window.addEventListener('resize', update);
+    return () => window.removeEventListener('resize', update);
+  }, [totalWidth, svgHeight]);
 
   if (r16.length === 0 && qf.length === 0 && sf.length === 0 && final.length === 0) {
     return (
@@ -299,8 +326,9 @@ export default function BracketView({ matches, teams }: Props) {
   }
 
   return (
-    <div className="overflow-x-auto pb-4">
-      <div className="relative" style={{ width: totalWidth, height: svgHeight }}>
+    <div ref={containerRef} className="overflow-x-auto sm:overflow-hidden sm:flex sm:justify-center" style={{ height: svgHeight * scale }}>
+      <div className="relative origin-top-left sm:origin-top" style={{ width: totalWidth * scale, height: svgHeight * scale }}>
+        <div className="absolute top-0 left-0" style={{ width: totalWidth, height: svgHeight, transform: `scale(${scale})`, transformOrigin: 'top left' }}>
         {/* SVG for lines */}
         <svg
           className="absolute inset-0 pointer-events-none"
@@ -438,6 +466,7 @@ export default function BracketView({ matches, teams }: Props) {
             />
           </>
         )}
+        </div>
       </div>
     </div>
   );
