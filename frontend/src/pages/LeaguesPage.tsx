@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { listLeagues, createLeague, joinLeagueByCode } from '../api/leagues';
+import { useLeague } from '../context/LeagueContext';
 import type { League } from '../api/types';
 
 export default function LeaguesPage() {
+  const { refreshLeagues: refreshLeagueContext } = useLeague();
   const [leagues, setLeagues] = useState<League[]>([]);
   const [showCreate, setShowCreate] = useState(false);
   const [showJoin, setShowJoin] = useState(false);
@@ -34,6 +36,7 @@ export default function LeaguesPage() {
       setName('');
       setShowCreate(false);
       loadLeagues();
+      refreshLeagueContext();
     } catch {
       setError('Erro ao criar liga.');
     }
@@ -49,6 +52,7 @@ export default function LeaguesPage() {
       setShowJoin(false);
       setSuccess('Entraste na liga!');
       loadLeagues();
+      refreshLeagueContext();
     } catch (err: any) {
       const detail = err?.response?.data?.detail;
       if (detail === 'Invalid invite code') {

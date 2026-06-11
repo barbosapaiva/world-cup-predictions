@@ -1,4 +1,4 @@
-import { Link, Outlet, useLocation } from 'react-router-dom';
+import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useLeague } from '../context/LeagueContext';
 
@@ -6,8 +6,14 @@ export default function Layout() {
   const { user, logout } = useAuth();
   const { leagues, activeLeague, setActiveLeagueId } = useLeague();
   const location = useLocation();
+  const navigate = useNavigate();
 
   const leagueId = activeLeague?.id ?? '';
+
+  const handleLeagueChange = (id: string) => {
+    setActiveLeagueId(id);
+    navigate(`/leagues/${id}`);
+  };
 
   const navItems = [
     { path: '/leagues', label: 'Ligas', href: '/leagues' },
@@ -28,7 +34,7 @@ export default function Layout() {
             {leagues.length > 0 && (
               <select
                 value={activeLeague?.id ?? ''}
-                onChange={(e) => setActiveLeagueId(e.target.value)}
+                onChange={(e) => handleLeagueChange(e.target.value)}
                 className="bg-emerald-700 text-white text-xs rounded-lg px-2 py-1.5 border border-emerald-600 focus:outline-none focus:ring-1 focus:ring-emerald-400 cursor-pointer"
               >
                 {leagues.map((l) => (
