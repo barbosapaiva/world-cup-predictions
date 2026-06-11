@@ -58,3 +58,7 @@ Its purpose is to keep terminology consistent across the codebase, documentation
 | Analytics Data | Data prepared for statistics, reporting, dashboards and insights. |
 | Data Ingestion | Process of importing data from external sources into the platform. |
 | Data Validation | Process of checking whether imported or submitted data respects expected rules. |
+| External Link | A mapping between an internal entity (e.g. match UUID) and an external provider's ID. Stored in `match_external_links`. |
+| Provider | An external data source identified by name (e.g. `football-data.org`). Multiple providers can coexist. |
+| Sync Pipeline | Process that fetches updated match results from an external API and applies changes to the database. |
+| Result Sync | The act of checking pending matches, fetching results from the API, and updating status + scores. |

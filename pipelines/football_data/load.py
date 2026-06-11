@@ -12,6 +12,7 @@ from pipelines.common.db import get_session
 
 logger = logging.getLogger(__name__)
 
+PROVIDER = "football-data.org"
 
 # --- SQL statements ---
 
@@ -54,6 +55,14 @@ UPSERT_MATCH = text("""
         status = EXCLUDED.status,
         home_score = EXCLUDED.home_score,
         away_score = EXCLUDED.away_score
+    RETURNING id
+""")
+
+UPSERT_EXTERNAL_LINK = text("""
+    INSERT INTO match_external_links (match_id, provider, external_id)
+    VALUES (:match_id, :provider, :external_id)
+    ON CONFLICT (match_id, provider) DO UPDATE SET
+        external_id = EXCLUDED.external_id
 """)
 
 FIND_PLAYER = text("""
@@ -63,14 +72,11 @@ FIND_PLAYER = text("""
 """)
 
 INSERT_PLAYER = text("""
-
     INSERT INTO players (team_id, name, position, birth_date)
     VALUES (
         (SELECT id FROM teams WHERE code = :team_code),
         :name, CAST(:position AS player_position), :birth_date
-
     )
-
 """)
 
 UPDATE_PLAYER = text("""
@@ -78,53 +84,39 @@ UPDATE_PLAYER = text("""
         position = CAST(:position AS player_position),
         birth_date = :birth_date
     WHERE id = :player_id
-
 """)
 
 
 def _nan_to_none(val):
-
     if pd.isna(val):
         return None
-
     return val
 
 
 def _parse_datetime(val):
-
     val = _nan_to_none(val)
-
     if val is None:
         return None
-
     if isinstance(val, datetime):
         return val
-
     return datetime.fromisoformat(str(val).replace("Z", "+00:00"))
 
 
 def _parse_int(val):
-
     val = _nan_to_none(val)
-
     if val is None:
         return None
-
     return int(val)
 
 
 def _parse_date(val):
     val = _nan_to_none(val)
-
     if val is None:
         return None
-
     if isinstance(val, datetime):
         return val.date()
-
     if isinstance(val, date):
         return val
-
     return date.fromisoformat(str(val))
 
 
@@ -151,12 +143,12 @@ async def load_teams(df: pd.DataFrame) -> int:
 
 
 async def load_matches(df: pd.DataFrame) -> int:
-
+    """Upsert matches (ON CONFLICT match_number) + upsert external links."""
     count = 0
-
     async with get_session() as session:
         for _, row in df.iterrows():
-            await session.execute(
+            # Upsert match, get UUID back
+            result = await session.execute(
                 UPSERT_MATCH,
                 {
                     "match_number": int(row["match_number"]),
@@ -174,11 +166,22 @@ async def load_matches(df: pd.DataFrame) -> int:
                     "away_score": _parse_int(row.get("away_score")),
                 },
             )
+            match_id = result.scalar_one()
+
+            external_id = _parse_int(row.get("external_match_id"))
+            if external_id is not None:
+                await session.execute(
+                    UPSERT_EXTERNAL_LINK,
+                    {
+                        "match_id": match_id,
+                        "provider": PROVIDER,
+                        "external_id": str(external_id),
+                    },
+                )
 
             count += 1
 
-    logger.info("Upserted %s matches", count)
-
+    logger.info("Upserted %s matches + external links (%s)", count, PROVIDER)
     return count
 
 
