@@ -32,10 +32,10 @@ export default function Layout() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      {/* ── Top bar ── */}
+      {/* ── Header ── */}
       <nav className="bg-emerald-800 sticky top-0 z-30 safe-top shadow-lg">
-        <div className="max-w-5xl mx-auto px-3 flex items-center justify-between h-12">
-          {/* Logo */}
+        {/* Row 1: Logo + League selector + User */}
+        <div className="max-w-5xl mx-auto px-4 flex items-center justify-between h-11">
           <span
             onClick={() => navigate('/leagues')}
             className="font-extrabold text-base text-white tracking-tight cursor-pointer select-none shrink-0"
@@ -43,48 +43,47 @@ export default function Layout() {
             WC 2026
           </span>
 
-          {/* Nav links */}
-          <div className="flex items-center gap-1">
-            {navItems.map((item) => {
-              const active = getIsActive(item);
-              return (
-                <button
-                  key={item.path}
-                  onClick={() => navigate(item.href)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                    active
-                      ? 'bg-emerald-700 text-white'
-                      : 'text-emerald-300 active:text-white'
-                  }`}
-                >
-                  {item.label}
-                </button>
-              );
-            })}
-          </div>
+          {leagues.length > 0 && (
+            <select
+              value={activeLeague?.id ?? ''}
+              onChange={(e) => handleLeagueChange(e.target.value)}
+              className="bg-emerald-700 text-white text-xs rounded-lg px-2 py-1 border border-emerald-600 focus:outline-none focus:ring-1 focus:ring-emerald-400 cursor-pointer max-w-[180px] truncate"
+            >
+              {leagues.map((l) => (
+                <option key={l.id} value={l.id}>{l.name}</option>
+              ))}
+            </select>
+          )}
 
-          {/* Right: league selector + user */}
           <div className="flex items-center gap-2 shrink-0">
-            {leagues.length > 0 && (
-              <select
-                value={activeLeague?.id ?? ''}
-                onChange={(e) => handleLeagueChange(e.target.value)}
-                className="bg-emerald-700 text-white text-[11px] rounded-lg px-1.5 py-1 border border-emerald-600 focus:outline-none focus:ring-1 focus:ring-emerald-400 cursor-pointer max-w-[100px] truncate"
-              >
-                {leagues.map((l) => (
-                  <option key={l.id} value={l.id}>{l.name}</option>
-                ))}
-              </select>
-            )}
-            <span className="text-[11px] text-emerald-300 hidden sm:inline truncate max-w-[80px]">{user?.name}</span>
+            <span className="text-xs text-emerald-300 truncate max-w-[80px]">{user?.name}</span>
             <button
               onClick={logout}
-              className="text-[11px] text-emerald-400 hover:text-white active:text-white transition-colors px-1"
-              title="Sair"
+              className="text-xs text-emerald-400 hover:text-white active:text-white transition-colors"
             >
               Sair
             </button>
           </div>
+        </div>
+
+        {/* Row 2: Navigation */}
+        <div className="max-w-5xl mx-auto px-4 flex items-center justify-center gap-1 h-9 border-t border-emerald-700/50">
+          {navItems.map((item) => {
+            const active = getIsActive(item);
+            return (
+              <button
+                key={item.path}
+                onClick={() => navigate(item.href)}
+                className={`px-4 py-1 rounded-md text-sm font-medium transition-colors ${
+                  active
+                    ? 'bg-emerald-700 text-white'
+                    : 'text-emerald-300 active:text-white'
+                }`}
+              >
+                {item.label}
+              </button>
+            );
+          })}
         </div>
       </nav>
 
