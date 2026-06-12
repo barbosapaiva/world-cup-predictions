@@ -19,3 +19,8 @@ export async function listMyPredictions(leagueId?: string): Promise<Prediction[]
   const res = await api.get<Prediction[]>('/predictions/me', { params });
   return res.data;
 }
+
+export async function listMatchPredictions(matchId: string, leagueId: string): Promise<Prediction[]> {
+  const res = await api.get<Prediction[]>(`/predictions/matches/${matchId}`, { params: { league_id: leagueId } });
+  return res.data;
+}

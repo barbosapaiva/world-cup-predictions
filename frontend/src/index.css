@@ -1,1 +1,61 @@
 @import "tailwindcss";
+
+/* ── PWA / Mobile globals ── */
+html, body {
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+  scroll-behavior: smooth;
+}
+
+body {
+  /* Bottom nav clearance */
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Safe area utilities */
+.safe-top { padding-top: env(safe-area-inset-top, 0px); }
+.safe-bottom { padding-bottom: env(safe-area-inset-bottom, 0px); }
+
+/* Standalone mode (Add to Home Screen) */
+@media (display-mode: standalone) {
+  .safe-top {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+}
+
+/* Prevent pull-to-refresh on mobile */
+html {
+  overflow: hidden;
+  height: 100%;
+}
+body {
+  overflow: auto;
+  height: 100%;
+}
+#root {
+  min-height: 100%;
+}
+
+/* Hide number input spinners for cleaner score inputs */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+/* Smooth transitions for tab switches */
+.tab-transition {
+  transition: all 0.2s ease;
+}
+
+/* Hide scrollbar but keep scrollable (for tab bars) */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}

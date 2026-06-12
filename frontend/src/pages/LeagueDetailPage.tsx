@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { getLeague, listMembers } from '../api/leagues';
 import { getLeagueRanking } from '../api/rankings';
@@ -28,6 +28,7 @@ export default function LeagueDetailPage() {
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<Tab>('jogos');
   const [matchFilter, setMatchFilter] = useState<'upcoming' | 'all' | 'finished'>('upcoming');
+  const tabsRef = useRef<HTMLDivElement>(null);
 
   const loadData = async () => {
     if (!leagueId) return;
@@ -78,7 +79,7 @@ export default function LeagueDetailPage() {
     );
   }
 
-  if (!league) return <div className="p-8 text-center text-gray-500">Liga não encontrada.</div>;
+  if (!league) return <div className="p-4 text-center text-gray-500">Liga não encontrada.</div>;
 
   const now = new Date();
   const filteredMatches = allMatches.filter((m) => {
@@ -96,7 +97,6 @@ export default function LeagueDetailPage() {
 
   const sortedDays = Object.keys(matchesByDay).sort();
 
-  // Build groups from teams
   const groups = teamsList.reduce<Record<string, Team[]>>((acc, t) => {
     if (t.group_letter) {
       if (!acc[t.group_letter]) acc[t.group_letter] = [];
@@ -114,11 +114,14 @@ export default function LeagueDetailPage() {
     { category: 'mvp', label: 'MVP', description: 'Melhor jogador do torneio', type: 'player' },
     { category: 'golden_boot', label: 'Bota de Ouro', description: 'Melhor marcador do torneio', type: 'player' },
     { category: 'young_player', label: 'Melhor Jovem', description: 'Melhor jogador jovem do torneio', type: 'player' },
-    { category: 'best_gk', label: 'Melhor Guarda-Redes', description: 'Melhor guarda-redes do torneio', type: 'player' },
+    { category: 'best_gk', label: 'Melhor GR', description: 'Melhor guarda-redes do torneio', type: 'player' },
   ];
 
   const specialPredMap: Record<string, SpecialPrediction> = {};
   specialPredictions.forEach((sp) => { specialPredMap[sp.category] = sp; });
+
+  const userNames: Record<string, string> = {};
+  members.forEach((m) => { userNames[m.user_id] = m.user_name; });
 
   const tabs: { key: Tab; label: string }[] = [
     { key: 'jogos', label: 'Jogos' },
@@ -129,29 +132,33 @@ export default function LeagueDetailPage() {
   ];
 
   return (
-    <div className="max-w-2xl mx-auto p-6">
-      <div className="mb-6">
-        <div className="flex justify-between items-start">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-800 mb-1">{league.name}</h1>
-            <p className="text-gray-400 text-sm">Temporada {league.season} · {members.length} membros</p>
+    <div className="max-w-2xl mx-auto px-4 py-3">
+      {/* Header */}
+      <div className="mb-3">
+        <div className="flex justify-between items-start gap-2">
+          <div className="min-w-0 flex-1">
+            <h1 className="text-lg font-bold text-gray-800 leading-tight truncate">{league.name}</h1>
+            <p className="text-gray-400 text-xs mt-0.5">{league.season} · {members.length} membros</p>
           </div>
-          <div className="text-right">
-            <p className="text-xs text-gray-400 mb-1">Código de convite</p>
-            <span className="text-sm font-mono font-bold text-emerald-700 bg-emerald-50 px-3 py-1 rounded-lg border border-emerald-200">
+          <div className="text-right shrink-0">
+            <span className="text-xs font-mono font-bold text-emerald-700 bg-emerald-50 px-2 py-1 rounded-lg border border-emerald-200">
               {league.invite_code}
             </span>
           </div>
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-1 mb-6 border-b border-gray-200">
+      {/* Tabs — horizontally scrollable on mobile */}
+      <div
+        ref={tabsRef}
+        className="flex gap-0 mb-4 border-b border-gray-200 overflow-x-auto scrollbar-hide -mx-4 px-4"
+        style={{ WebkitOverflowScrolling: 'touch' }}
+      >
         {tabs.map((t) => (
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
-            className={`px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px ${
+            className={`px-3 py-2.5 text-sm font-medium whitespace-nowrap transition-colors border-b-2 -mb-px shrink-0 ${
               tab === t.key
                 ? 'border-emerald-600 text-emerald-700'
                 : 'border-transparent text-gray-400 hover:text-gray-600'
@@ -173,7 +180,7 @@ export default function LeagueDetailPage() {
                 className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
                   matchFilter === key
                     ? 'bg-emerald-100 text-emerald-700'
-                    : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                    : 'bg-gray-100 text-gray-500 active:bg-gray-200'
                 }`}
               >
                 {label}
@@ -182,7 +189,7 @@ export default function LeagueDetailPage() {
           </div>
 
           {sortedDays.length > 0 ? (
-            <div className="space-y-6">
+            <div className="space-y-5">
               {sortedDays.map((day) => {
                 const dayDate = new Date(day + 'T12:00:00');
                 const isToday = day === now.toISOString().slice(0, 10);
@@ -192,8 +199,8 @@ export default function LeagueDetailPage() {
 
                 return (
                   <div key={day}>
-                    <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">{dayLabel}</h3>
-                    <div className="space-y-3">
+                    <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">{dayLabel}</h3>
+                    <div className="space-y-2">
                       {matchesByDay[day].map((match) => (
                         <MatchCard
                           key={match.id}
@@ -201,6 +208,7 @@ export default function LeagueDetailPage() {
                           teams={teams}
                           prediction={predictions[match.id]}
                           leagueId={leagueId!}
+                          userNames={userNames}
                           onPredictionSaved={loadData}
                         />
                       ))}
@@ -210,17 +218,17 @@ export default function LeagueDetailPage() {
               })}
             </div>
           ) : (
-            <p className="text-gray-400 text-center py-8">Sem jogos para mostrar.</p>
+            <p className="text-gray-400 text-center py-8 text-sm">Sem jogos para mostrar.</p>
           )}
         </>
       )}
 
       {tab === 'grupos' && (
         <>
-          <p className="text-sm text-gray-500 mb-4">
+          <p className="text-xs text-gray-500 mb-3">
             Prevê a classificação final de cada grupo. 1 ponto por posição acertada (máx. 4 por grupo).
           </p>
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-3 grid-cols-1 sm:grid-cols-2">
             {sortedGroups.map((g) => {
               const groupStarted = allMatches.some(
                 (m) => m.group_letter === g && m.stage === 'group' && m.status !== 'scheduled'
@@ -243,10 +251,10 @@ export default function LeagueDetailPage() {
 
       {tab === 'especiais' && (
         <>
-          <p className="text-sm text-gray-500 mb-4">
-            Previsões especiais valem 6 pontos cada. Podes alterar até ao final da fase de grupos.
+          <p className="text-xs text-gray-500 mb-3">
+            Previsões especiais valem 6 pontos cada. Data limite: <span className="font-semibold">18 de junho, 17:00</span>.
           </p>
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-3 grid-cols-1 sm:grid-cols-2">
             {specialCategories.map((cat) => (
               <SpecialPredictionCard
                 key={cat.category}
@@ -268,27 +276,27 @@ export default function LeagueDetailPage() {
       {tab === 'ranking' && (
         <>
           {ranking.length === 0 ? (
-            <p className="text-gray-400 text-center py-8">Ainda não há pontuações.</p>
+            <p className="text-gray-400 text-center py-8 text-sm">Ainda não há pontuações.</p>
           ) : (
             <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
               <table className="w-full text-sm">
                 <thead className="bg-gray-50 border-b">
                   <tr>
-                    <th className="px-4 py-3 text-left text-gray-500 font-medium">#</th>
-                    <th className="px-4 py-3 text-left text-gray-500 font-medium">Nome</th>
-                    <th className="px-4 py-3 text-right text-gray-500 font-medium">Total</th>
-                    <th className="px-4 py-3 text-right text-gray-500 font-medium hidden sm:table-cell">Pts Jogos</th>
-                    <th className="px-4 py-3 text-right text-gray-500 font-medium">Exatos</th>
+                    <th className="px-3 py-2.5 text-left text-gray-500 font-medium text-xs">#</th>
+                    <th className="px-3 py-2.5 text-left text-gray-500 font-medium text-xs">Nome</th>
+                    <th className="px-3 py-2.5 text-right text-gray-500 font-medium text-xs">Total</th>
+                    <th className="px-3 py-2.5 text-right text-gray-500 font-medium text-xs hidden sm:table-cell">Pts Jogos</th>
+                    <th className="px-3 py-2.5 text-right text-gray-500 font-medium text-xs">Exatos</th>
                   </tr>
                 </thead>
                 <tbody>
                   {ranking.map((entry, i) => (
                     <tr key={entry.user_id} className={`border-t ${i < 3 ? 'bg-emerald-50/50' : ''}`}>
-                      <td className="px-4 py-3 font-bold text-gray-700">{entry.position}</td>
-                      <td className="px-4 py-3 font-medium text-gray-800">{entry.name}</td>
-                      <td className="px-4 py-3 text-right font-bold text-emerald-600">{entry.total_points}</td>
-                      <td className="px-4 py-3 text-right text-gray-400 hidden sm:table-cell">{entry.match_points}</td>
-                      <td className="px-4 py-3 text-right text-gray-400">{entry.exact_scores}</td>
+                      <td className="px-3 py-2.5 font-bold text-gray-700 text-sm">{entry.position}</td>
+                      <td className="px-3 py-2.5 font-medium text-gray-800 text-sm">{entry.name}</td>
+                      <td className="px-3 py-2.5 text-right font-bold text-emerald-600 text-sm">{entry.total_points}</td>
+                      <td className="px-3 py-2.5 text-right text-gray-400 text-sm hidden sm:table-cell">{entry.match_points}</td>
+                      <td className="px-3 py-2.5 text-right text-gray-400 text-sm">{entry.exact_scores}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -299,11 +307,11 @@ export default function LeagueDetailPage() {
       )}
 
       {tab === 'membros' && (
-        <div className="space-y-2">
+        <div className="space-y-1.5">
           {members.map((member) => (
-            <div key={member.id} className="bg-white border border-gray-200 rounded-lg px-4 py-3 flex justify-between items-center">
+            <div key={member.id} className="bg-white border border-gray-200 rounded-lg px-3 py-2.5 flex justify-between items-center">
               <span className="text-sm text-gray-800">{member.user_name}</span>
-              <span className={`text-xs px-2 py-0.5 rounded-full ${
+              <span className={`text-[10px] px-2 py-0.5 rounded-full ${
                 member.role === 'admin'
                   ? 'bg-emerald-50 text-emerald-700'
                   : 'bg-gray-100 text-gray-500'

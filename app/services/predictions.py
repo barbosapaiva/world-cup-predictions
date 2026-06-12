@@ -1,9 +1,9 @@
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime, timezone
 from uuid import UUID
 
 from fastapi import HTTPException, status
 
-from app.models.enums import MatchStage, MatchStatus, SpecialCategory
+from app.models.enums import MatchStage, MatchStatus, PlayerPosition, SpecialCategory
 from app.models.predictions import Prediction, SpecialPrediction
 from app.models.tournament import Match
 from app.models.users import User
@@ -15,6 +15,12 @@ from app.schemas.predictions import (
     PredictionUpdate,
     SpecialPredictionCreate,
 )
+
+# Special predictions deadline: first game second hand matchday end (18 June 2026, 17:00 UTC)
+SPECIAL_PREDICTIONS_DEADLINE = datetime(2026, 6, 18, 17, 0, 0, tzinfo=timezone.utc)
+
+# Young player cutoff: born on or after 1 Jan 2005 (max 21 years old)
+YOUNG_PLAYER_CUTOFF = date(2005, 1, 1)
 
 
 class PredictionService:
@@ -169,13 +175,16 @@ class PredictionService:
         await self._validate_league_membership(data.league_id, current_user.id)
         self._validate_special_prediction_target(data)
 
-        # Deadline: before end of group stage
-        last_group_match = await self._get_last_group_stage_match()
-        if last_group_match and datetime.now(UTC) >= last_group_match.submission_deadline:
+        # Deadline: 18 June 2026, 17:00 UTC (end of first matchday)
+        if datetime.now(UTC) >= SPECIAL_PREDICTIONS_DEADLINE:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Special predictions deadline has passed (group stage ended)",
+                detail="Special predictions deadline has passed (18 Jun 17:00)",
             )
+
+        # Validate player constraints for specific categories
+        if data.player_id is not None:
+            await self._validate_player_for_category(data.player_id, data.category)
 
         existing_prediction = await self.prediction_repository.get_special_prediction(
             user_id=current_user.id,
@@ -199,12 +208,31 @@ class PredictionService:
 
         return await self.prediction_repository.create_special_prediction(special_prediction)
 
-    async def _get_last_group_stage_match(self) -> Match | None:
-        matches = await self.tournament_repository.list_matches()
-        group_matches = [m for m in matches if m.stage == MatchStage.GROUP]
-        if not group_matches:
-            return None
-        return max(group_matches, key=lambda m: m.match_date)
+    async def _validate_player_for_category(
+        self,
+        player_id: UUID,
+        category: SpecialCategory,
+    ) -> None:
+        player = await self.tournament_repository.get_player_by_id(player_id)
+        if player is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Player not found",
+            )
+
+        if category == SpecialCategory.BEST_GK:
+            if player.position != PlayerPosition.GK:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Best GK prediction requires a goalkeeper",
+                )
+
+        if category == SpecialCategory.YOUNG_PLAYER:
+            if player.birth_date is None or player.birth_date < YOUNG_PLAYER_CUTOFF:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Young player prediction requires a player under 21",
+                )
 
     async def list_my_special_predictions(
         self,
