@@ -10,7 +10,7 @@ export default function RegisterPage() {
   const [inviteCode, setInviteCode] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { setToken } = useAuth();
+  const { refreshUser } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -19,8 +19,8 @@ export default function RegisterPage() {
     setLoading(true);
     try {
       await register({ name, email, password, invite_code: inviteCode });
-      const res = await login({ email, password });
-      setToken(res.access_token);
+      await login({ email, password });
+      await refreshUser();
       navigate('/leagues');
     } catch (err: any) {
       const detail = err?.response?.data?.detail;

@@ -8,7 +8,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { setToken } = useAuth();
+  const { refreshUser } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -16,8 +16,8 @@ export default function LoginPage() {
     setError('');
     setLoading(true);
     try {
-      const res = await login({ email, password });
-      setToken(res.access_token);
+      await login({ email, password });
+      await refreshUser();
       navigate('/leagues');
     } catch {
       setError('Email ou password incorretos.');
