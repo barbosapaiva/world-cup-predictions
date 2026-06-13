@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import { getLeague, listMembers } from '../api/leagues';
 import { getLeagueRanking } from '../api/rankings';
 import { listMatches, listTeams, listPlayers } from '../api/matches';
 import { listMyPredictions } from '../api/predictions';
-import { listGroupPredictions } from '../api/groupPredictions';
-import { listMySpecialPredictions } from '../api/specialPredictions';
+import { listGroupPredictions, listAllGroupPredictions } from '../api/groupPredictions';
+import { listMySpecialPredictions, listLeagueSpecialPredictions } from '../api/specialPredictions';
 import type { League, LeagueMember, RankingEntry, Match, Team, Player, Prediction, GroupPrediction, SpecialPrediction, SpecialCategory } from '../api/types';
 import MatchCard from '../components/MatchCard';
 import GroupPredictionCard from '../components/GroupPredictionCard';
@@ -15,6 +16,7 @@ type Tab = 'jogos' | 'grupos' | 'especiais' | 'ranking' | 'membros';
 
 export default function LeagueDetailPage() {
   const { leagueId } = useParams<{ leagueId: string }>();
+  const { user } = useAuth();
   const [league, setLeague] = useState<League | null>(null);
   const [members, setMembers] = useState<LeagueMember[]>([]);
   const [ranking, setRanking] = useState<RankingEntry[]>([]);
@@ -25,6 +27,8 @@ export default function LeagueDetailPage() {
   const [groupPredictions, setGroupPredictions] = useState<GroupPrediction[]>([]);
   const [allPlayers, setAllPlayers] = useState<Player[]>([]);
   const [specialPredictions, setSpecialPredictions] = useState<SpecialPrediction[]>([]);
+  const [allGroupPredictions, setAllGroupPredictions] = useState<GroupPrediction[]>([]);
+  const [allSpecialPredictions, setAllSpecialPredictions] = useState<SpecialPrediction[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<Tab>('jogos');
   const [matchFilter, setMatchFilter] = useState<'upcoming' | 'all' | 'finished'>('upcoming');
@@ -33,7 +37,7 @@ export default function LeagueDetailPage() {
   const loadData = async () => {
     if (!leagueId) return;
 
-    const [l, m, r, matchesData, teamsData, playersData, predsData, groupPredsData, specialPredsData] = await Promise.all([
+    const [l, m, r, matchesData, teamsData, playersData, predsData, groupPredsData, specialPredsData, allGroupPredsData, allSpecialPredsData] = await Promise.all([
       getLeague(leagueId),
       listMembers(leagueId),
       getLeagueRanking(leagueId).catch(() => []),
@@ -43,6 +47,8 @@ export default function LeagueDetailPage() {
       listMyPredictions(leagueId),
       listGroupPredictions(leagueId).catch(() => []),
       listMySpecialPredictions(leagueId).catch(() => []),
+      listAllGroupPredictions(leagueId).catch(() => []),
+      listLeagueSpecialPredictions(leagueId).catch(() => []),
     ]);
 
     setLeague(l);
@@ -62,6 +68,8 @@ export default function LeagueDetailPage() {
     setAllPlayers(playersData);
     setGroupPredictions(groupPredsData);
     setSpecialPredictions(specialPredsData);
+    setAllGroupPredictions(allGroupPredsData);
+    setAllSpecialPredictions(allSpecialPredsData);
     setLoading(false);
   };
 
@@ -233,6 +241,9 @@ export default function LeagueDetailPage() {
               const groupStarted = allMatches.some(
                 (m) => m.group_letter === g && m.stage === 'group' && m.status !== 'scheduled'
               );
+              const othersGroupPreds = allGroupPredictions.filter(
+                (gp) => gp.group_letter === g && gp.user_id !== user?.id
+              );
               return (
                 <GroupPredictionCard
                   key={g}
@@ -241,6 +252,8 @@ export default function LeagueDetailPage() {
                   leagueId={leagueId!}
                   existing={groupPredMap[g] || null}
                   locked={groupStarted}
+                  othersPredictions={othersGroupPreds}
+                  userNames={userNames}
                   onSaved={loadData}
                 />
               );
@@ -255,7 +268,11 @@ export default function LeagueDetailPage() {
             Previsões especiais valem 6 pontos cada. Data limite: <span className="font-semibold">18 de junho, 17:00</span>.
           </p>
           <div className="grid gap-3 grid-cols-1 sm:grid-cols-2">
-            {specialCategories.map((cat) => (
+            {specialCategories.map((cat) => {
+              const othersSpecialPreds = allSpecialPredictions.filter(
+                (sp) => sp.category === cat.category && sp.user_id !== user?.id
+              );
+              return (
               <SpecialPredictionCard
                 key={cat.category}
                 category={cat.category}
@@ -266,9 +283,12 @@ export default function LeagueDetailPage() {
                 players={allPlayers}
                 leagueId={leagueId!}
                 existing={specialPredMap[cat.category] || null}
+                othersPredictions={othersSpecialPreds}
+                userNames={userNames}
                 onSaved={loadData}
               />
-            ))}
+              );
+            })}
           </div>
         </>
       )}

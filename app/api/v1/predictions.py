@@ -111,3 +111,15 @@ async def list_my_special_predictions(
     service: PredictionService = Depends(get_prediction_service),
 ):
     return await service.list_my_special_predictions(current_user, league_id)
+
+
+@router.get(
+    "/special-predictions/league/{league_id}",
+    response_model=list[SpecialPredictionResponse],
+)
+async def list_league_special_predictions(
+    league_id: UUID,
+    current_user: User = Depends(get_current_user),
+    service: PredictionService = Depends(get_prediction_service),
+):
+    return await service.list_league_special_predictions(league_id, current_user)

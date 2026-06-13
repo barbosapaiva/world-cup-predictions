@@ -244,6 +244,22 @@ class PredictionService:
             league_id=league_id,
         )
 
+    async def list_league_special_predictions(
+        self,
+        league_id: UUID,
+        current_user: User,
+    ) -> list[SpecialPrediction]:
+        await self._validate_league_membership(league_id, current_user.id)
+
+        now = datetime.now(UTC)
+        if now < SPECIAL_PREDICTIONS_DEADLINE:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Special predictions are not yet closed",
+            )
+
+        return await self.prediction_repository.list_league_special_predictions(league_id)
+
     async def _validate_league_membership(
         self,
         league_id: UUID,

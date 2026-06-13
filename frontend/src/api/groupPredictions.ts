@@ -13,3 +13,8 @@ export async function submitGroupPrediction(
   const res = await api.post<GroupPrediction>(`/leagues/${leagueId}/group-predictions`, data);
   return res.data;
 }
+
+export async function listAllGroupPredictions(leagueId: string): Promise<GroupPrediction[]> {
+  const res = await api.get<GroupPrediction[]>(`/leagues/${leagueId}/group-predictions/all`);
+  return res.data;
+}

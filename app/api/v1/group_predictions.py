@@ -46,6 +46,15 @@ async def list_my_group_predictions(
     return await service.list_my_predictions(league_id, current_user)
 
 
+@router.get("/all", response_model=list[GroupPredictionResponse])
+async def list_all_group_predictions(
+    league_id: UUID,
+    current_user: User = Depends(get_current_user),
+    service: GroupPredictionService = Depends(get_service),
+):
+    return await service.list_all_league_predictions(league_id, current_user)
+
+
 @router.get("/standings/{group_letter}", response_model=list[GroupStandingEntry])
 async def get_group_standings(
     league_id: UUID,

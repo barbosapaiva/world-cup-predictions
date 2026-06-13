@@ -116,3 +116,14 @@ class PredictionRepository:
 
         result = await self.session.execute(query)
         return list(result.scalars().all())
+
+    async def list_league_special_predictions(
+        self,
+        league_id: UUID,
+    ) -> list[SpecialPrediction]:
+        result = await self.session.execute(
+            select(SpecialPrediction)
+            .where(SpecialPrediction.league_id == league_id)
+            .order_by(SpecialPrediction.category, SpecialPrediction.submitted_at)
+        )
+        return list(result.scalars().all())

@@ -12,3 +12,8 @@ export async function listMySpecialPredictions(leagueId: string): Promise<Specia
   });
   return res.data;
 }
+
+export async function listLeagueSpecialPredictions(leagueId: string): Promise<SpecialPrediction[]> {
+  const res = await api.get<SpecialPrediction[]>(`/special-predictions/league/${leagueId}`);
+  return res.data;
+}

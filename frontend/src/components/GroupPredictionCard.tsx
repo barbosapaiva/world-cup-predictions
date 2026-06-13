@@ -8,13 +8,19 @@ interface Props {
   leagueId: string;
   existing: GroupPrediction | null;
   locked?: boolean;
+  othersPredictions?: GroupPrediction[];
+  userNames?: Record<string, string>;
   onSaved: () => void;
 }
 
-export default function GroupPredictionCard({ groupLetter, teams, leagueId, existing, locked = false, onSaved }: Props) {
+export default function GroupPredictionCard({
+  groupLetter, teams, leagueId, existing, locked = false,
+  othersPredictions = [], userNames = {}, onSaved,
+}: Props) {
   const [positions, setPositions] = useState<(string | null)[]>([null, null, null, null]);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [expanded, setExpanded] = useState(false);
 
   useEffect(() => {
     if (existing) {
@@ -30,7 +36,6 @@ export default function GroupPredictionCard({ groupLetter, teams, leagueId, exis
   const handleSelect = (posIndex: number, teamId: string) => {
     setPositions((prev) => {
       const next = [...prev];
-      // If this team was already in another position, swap
       const existingIndex = next.indexOf(teamId);
       if (existingIndex !== -1 && existingIndex !== posIndex) {
         next[existingIndex] = next[posIndex];
@@ -63,10 +68,8 @@ export default function GroupPredictionCard({ groupLetter, teams, leagueId, exis
     }
   };
 
-  const getTeamName = (id: string | null) => {
-    if (!id) return null;
-    return teams.find((t) => t.id === id);
-  };
+  const teamMap = teams.reduce<Record<string, Team>>((acc, t) => { acc[t.id] = t; return acc; }, {});
+  const getTeamName = (id: string | null) => id ? teamMap[id] : undefined;
 
   const labels = ['1º', '2º', '3º', '4º'];
 
@@ -128,6 +131,42 @@ export default function GroupPredictionCard({ groupLetter, teams, leagueId, exis
           </button>
         )}
       </div>
+
+      {/* Others' predictions — collapsible */}
+      {locked && othersPredictions.length > 0 && (
+        <div className="mt-3 border-t border-gray-100 pt-2">
+          <button
+            onClick={() => setExpanded(!expanded)}
+            className="w-full flex items-center justify-between text-xs text-gray-500 hover:text-gray-700 py-1"
+          >
+            <span className="font-medium">Apostas dos outros ({othersPredictions.length})</span>
+            <span className="text-[10px]">{expanded ? '▲' : '▼'}</span>
+          </button>
+          {expanded && (
+            <div className="mt-2 space-y-3">
+              {othersPredictions.map((pred) => (
+                <div key={pred.id} className="bg-gray-50 rounded-lg px-3 py-2">
+                  <p className="text-xs font-semibold text-gray-700 mb-1">
+                    {userNames[pred.user_id] || 'Utilizador'}
+                  </p>
+                  <div className="flex gap-1.5 flex-wrap">
+                    {[pred.first_team_id, pred.second_team_id, pred.third_team_id, pred.fourth_team_id].map((tid, i) => {
+                      const team = teamMap[tid];
+                      return (
+                        <span key={i} className="inline-flex items-center gap-1 text-[11px] text-gray-600 bg-white rounded px-1.5 py-0.5 border border-gray-200">
+                          <span className="text-gray-400 font-medium">{i + 1}º</span>
+                          {team?.flag_url && <img src={team.flag_url} alt="" className="w-4 h-3 object-cover rounded-sm" />}
+                          {team?.code || '?'}
+                        </span>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
