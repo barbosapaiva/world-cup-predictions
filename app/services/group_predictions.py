@@ -140,6 +140,29 @@ class GroupPredictionService:
 
         return [GroupStandingEntry(position=i + 1, **e) for i, e in enumerate(entries)]
 
+    async def list_all_league_predictions(
+        self,
+        league_id: UUID,
+        current_user: User,
+    ) -> list[GroupPrediction]:
+        member = await self.league_repo.get_member(current_user.id, league_id)
+        if member is None:
+            raise HTTPException(status.HTTP_403_FORBIDDEN, "Not a member of this league")
+
+        # Collect predictions for groups that have already started
+        all_group_matches = await self.tournament_repo.list_matches(stage=MatchStage.GROUP)
+        started_groups: set[str] = set()
+        for m in all_group_matches:
+            if m.group_letter and m.status != MatchStatus.SCHEDULED:
+                started_groups.add(m.group_letter)
+
+        results: list[GroupPrediction] = []
+        for group_letter in started_groups:
+            preds = await self.repo.list_by_league_group(league_id, group_letter)
+            results.extend(preds)
+
+        return results
+
     async def score_group(self, league_id: UUID, group_letter: str) -> None:
         """Score all predictions for a group after it finishes."""
         standings = await self.get_group_standings(group_letter)

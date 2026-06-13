@@ -17,11 +17,14 @@ interface Props {
   players: Player[];
   leagueId: string;
   existing: SpecialPrediction | null;
+  othersPredictions?: SpecialPrediction[];
+  userNames?: Record<string, string>;
   onSaved: () => void;
 }
 
 export default function SpecialPredictionCard({
-  category, label, description, type, teams, players, leagueId, existing, onSaved,
+  category, label, description, type, teams, players, leagueId, existing,
+  othersPredictions = [], userNames = {}, onSaved,
 }: Props) {
   const [selectedTeamId, setSelectedTeamId] = useState<string>('');
   const [selectedPlayerId, setSelectedPlayerId] = useState<string>('');
@@ -29,6 +32,7 @@ export default function SpecialPredictionCard({
   const [showDropdown, setShowDropdown] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
   const locked = new Date() >= SPECIAL_DEADLINE;
@@ -69,8 +73,9 @@ export default function SpecialPredictionCard({
     return () => document.removeEventListener('mousedown', handleClick);
   }, []);
 
-  // Build team lookup for showing team code next to player name
+  // Build lookups
   const teamMap = teams.reduce<Record<string, Team>>((acc, t) => { acc[t.id] = t; return acc; }, {});
+  const playerMap = players.reduce<Record<string, Player>>((acc, p) => { acc[p.id] = p; return acc; }, {});
 
   const filteredPlayers = search.length >= 2
     ? eligiblePlayers.filter((p) => p.name.toLowerCase().includes(search.toLowerCase())).slice(0, 15)
@@ -116,6 +121,17 @@ export default function SpecialPredictionCard({
     : category === 'young_player'
       ? 'Pesquisar jogador sub-21...'
       : 'Escrever nome do jogador...';
+
+  const resolveName = (pred: SpecialPrediction): string => {
+    if (pred.team_id) return teamMap[pred.team_id]?.name ?? '—';
+    if (pred.player_id) {
+      const p = playerMap[pred.player_id];
+      if (!p) return '—';
+      const t = teamMap[p.team_id];
+      return t ? `${p.name} (${t.code})` : p.name;
+    }
+    return '—';
+  };
 
   return (
     <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
@@ -204,6 +220,31 @@ export default function SpecialPredictionCard({
           </button>
         )}
       </div>
+
+      {/* Others' predictions — collapsible */}
+      {locked && othersPredictions.length > 0 && (
+        <div className="mt-3 border-t border-gray-100 pt-2">
+          <button
+            onClick={() => setExpanded(!expanded)}
+            className="w-full flex items-center justify-between text-xs text-gray-500 hover:text-gray-700 py-1"
+          >
+            <span className="font-medium">Apostas dos outros ({othersPredictions.length})</span>
+            <span className="text-[10px]">{expanded ? '▲' : '▼'}</span>
+          </button>
+          {expanded && (
+            <div className="mt-2 space-y-1.5">
+              {othersPredictions.map((pred) => (
+                <div key={pred.id} className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2">
+                  <span className="text-xs font-semibold text-gray-700">
+                    {userNames[pred.user_id] || 'Utilizador'}
+                  </span>
+                  <span className="text-xs text-gray-500">{resolveName(pred)}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
