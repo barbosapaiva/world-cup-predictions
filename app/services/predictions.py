@@ -1,4 +1,4 @@
-from datetime import UTC, date, datetime, timezone
+from datetime import UTC, date, datetime
 from uuid import UUID
 
 from fastapi import HTTPException, status
@@ -17,7 +17,7 @@ from app.schemas.predictions import (
 )
 
 # Special predictions deadline: first game second hand matchday end (18 June 2026, 17:00 UTC)
-SPECIAL_PREDICTIONS_DEADLINE = datetime(2026, 6, 18, 17, 0, 0, tzinfo=timezone.utc)
+SPECIAL_PREDICTIONS_DEADLINE = datetime(2026, 6, 18, 17, 0, 0, tzinfo=UTC)
 
 # Young player cutoff: born on or after 1 Jan 2005 (max 21 years old)
 YOUNG_PLAYER_CUTOFF = date(2005, 1, 1)

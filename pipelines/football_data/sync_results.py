@@ -8,8 +8,8 @@ from the API and updates status + scores only (via match_external_links).
 After updating, recalculates prediction scores for affected matches.
 
 Usage:
-    python -m pipelines.football_data.sync_results 
-    python -m pipelines.football_data.sync_results --loop 
+    python -m pipelines.football_data.sync_results
+    python -m pipelines.football_data.sync_results --loop
 """
 
 import argparse
