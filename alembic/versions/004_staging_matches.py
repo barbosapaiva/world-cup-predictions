@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 from alembic import op
 
-revision: str = "004_external_links"
+revision: str = "004_staging_matches"
 down_revision: str = "003_group_predictions"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None

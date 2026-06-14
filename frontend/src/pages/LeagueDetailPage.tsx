@@ -103,7 +103,9 @@ export default function LeagueDetailPage() {
     return acc;
   }, {});
 
-  const sortedDays = Object.keys(matchesByDay).sort();
+  const sortedDays = Object.keys(matchesByDay).sort(
+    matchFilter === 'finished' ? (a, b) => b.localeCompare(a) : undefined
+  );
 
   const groups = teamsList.reduce<Record<string, Team[]>>((acc, t) => {
     if (t.group_letter) {
