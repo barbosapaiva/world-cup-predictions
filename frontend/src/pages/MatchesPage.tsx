@@ -12,16 +12,21 @@ import { useLeague } from '../context/LeagueContext';
 type ViewMode = 'list' | 'bracket';
 type StageFilter = 'all' | 'group' | 'knockout';
 
+function toLocalDay(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
 function formatDayHeader(dateStr: string): string {
-  const date = new Date(dateStr);
   const today = new Date();
   const tomorrow = new Date();
   tomorrow.setDate(today.getDate() + 1);
 
-  const toDay = (d: Date) => d.toISOString().slice(0, 10);
+  if (dateStr === toLocalDay(today)) return 'Hoje';
+  if (dateStr === toLocalDay(tomorrow)) return 'Amanhã';
 
-  if (toDay(date) === toDay(today)) return 'Hoje';
-  if (toDay(date) === toDay(tomorrow)) return 'Amanhã';
+  // Parse as local date (YYYY-MM-DD) to avoid timezone shift
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const date = new Date(y, m - 1, d);
 
   return date.toLocaleDateString('pt-PT', {
     weekday: 'long',
@@ -83,7 +88,7 @@ export default function MatchesPage() {
     const dateMap = new Map<string, Match[]>();
 
     for (const m of filtered) {
-      const day = m.match_date.slice(0, 10);
+      const day = toLocalDay(new Date(m.match_date));
       if (!dateMap.has(day)) dateMap.set(day, []);
       dateMap.get(day)!.push(m);
     }

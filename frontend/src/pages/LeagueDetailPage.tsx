@@ -96,8 +96,13 @@ export default function LeagueDetailPage() {
     return true;
   });
 
+  const toLocalDay = (iso: string | Date) => {
+    const d = new Date(iso);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  };
+
   const matchesByDay = filteredMatches.reduce<Record<string, Match[]>>((acc, m) => {
-    const day = m.match_date.slice(0, 10);
+    const day = toLocalDay(m.match_date);
     if (!acc[day]) acc[day] = [];
     acc[day].push(m);
     return acc;
@@ -201,8 +206,9 @@ export default function LeagueDetailPage() {
           {sortedDays.length > 0 ? (
             <div className="space-y-5">
               {sortedDays.map((day) => {
-                const dayDate = new Date(day + 'T12:00:00');
-                const isToday = day === now.toISOString().slice(0, 10);
+                const isToday = day === toLocalDay(now);
+                const [y, mo, d] = day.split('-').map(Number);
+                const dayDate = new Date(y, mo - 1, d);
                 const dayLabel = isToday
                   ? 'Hoje'
                   : dayDate.toLocaleDateString('pt-PT', { weekday: 'long', day: 'numeric', month: 'long' });
@@ -211,7 +217,7 @@ export default function LeagueDetailPage() {
                   <div key={day}>
                     <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">{dayLabel}</h3>
                     <div className="space-y-2">
-                      {matchesByDay[day].map((match) => (
+                      {(matchFilter === 'finished' ? [...matchesByDay[day]].reverse() : matchesByDay[day]).map((match) => (
                         <MatchCard
                           key={match.id}
                           match={match}
