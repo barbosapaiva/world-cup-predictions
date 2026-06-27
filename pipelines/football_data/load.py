@@ -147,7 +147,6 @@ async def load_matches(df: pd.DataFrame) -> int:
     count = 0
     async with get_session() as session:
         for _, row in df.iterrows():
-            # Upsert match, get UUID back
             result = await session.execute(
                 UPSERT_MATCH,
                 {

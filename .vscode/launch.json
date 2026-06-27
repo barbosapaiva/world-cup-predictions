@@ -1,0 +1,38 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "SyncResults",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "pipelines.football_data.sync_results",
+      "cwd": "${workspaceFolder}",
+      "envFile": "${workspaceFolder}/.env",
+      "justMyCode": false
+    },
+    {
+      "name": "Pipeline - Skip Extract",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "pipelines.football_data.run",
+      "args": [
+        "--skip-extract"
+      ],
+      "cwd": "${workspaceFolder}",
+      "envFile": "${workspaceFolder}/.env",
+      "justMyCode": false
+    },
+    {
+      "name": "Pipeline - Skip Squads",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "pipelines.football_data.run",
+      "args": [
+        "--skip-squads"
+      ],
+      "cwd": "${workspaceFolder}",
+      "envFile": "${workspaceFolder}/.env",
+      "justMyCode": false
+    }
+  ]
+}

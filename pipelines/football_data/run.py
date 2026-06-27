@@ -21,9 +21,9 @@ from pathlib import Path
 try:
     from dotenv import load_dotenv
 
-    load_dotenv()  # loads .env in dev; no-op if file missing
+    load_dotenv() 
 except ImportError:
-    pass  # python-dotenv not installed (e.g. production) — env vars come from the system
+    pass  
 
 logger = logging.getLogger(__name__)
 
@@ -64,7 +64,6 @@ async def main():
 
     data = transform_run()
 
-    # --- LOAD ---
     if not args.skip_load:
         logger.info("=" * 50)
         logger.info("LOAD")

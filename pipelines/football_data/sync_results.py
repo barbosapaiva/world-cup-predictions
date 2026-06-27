@@ -73,6 +73,29 @@ UPSERT_PREDICTION_SCORE = text("""
         total_points = EXCLUDED.total_points
 """)
 
+FIND_KNOCKOUT_PLACEHOLDERS = text("""
+    SELECT m.id, mel.external_id, m.home_placeholder, m.away_placeholder
+    FROM matches m
+    JOIN match_external_links mel ON mel.match_id = m.id AND mel.provider = :provider
+    WHERE m.stage != 'group'
+      AND (m.home_team_id IS NULL OR m.away_team_id IS NULL)
+    ORDER BY m.match_number
+""")
+
+UPDATE_KNOCKOUT_HOME = text("""
+    UPDATE matches
+    SET home_team_id = (SELECT id FROM teams WHERE code = :home_code),
+        home_placeholder = NULL
+    WHERE id = :match_id AND home_team_id IS NULL
+""")
+
+UPDATE_KNOCKOUT_AWAY = text("""
+    UPDATE matches
+    SET away_team_id = (SELECT id FROM teams WHERE code = :away_code),
+        away_placeholder = NULL
+    WHERE id = :match_id AND away_team_id IS NULL
+""")
+
 EXACT_SCORE_POINTS = 3
 OUTCOME_POINTS = 1
 
@@ -102,76 +125,134 @@ async def get_pending_matches() -> list[dict]:
 
 
 async def sync_once() -> int:
-    """Run one sync cycle. Returns number of matches updated."""
-    pending = await get_pending_matches()
-    if not pending:
-        logger.info("No pending matches to sync.")
-        return 0
-
-    logger.info(
-        "Found %d pending match(es) (external IDs: %s)",
-        len(pending),
-        ", ".join(row["external_id"] for row in pending),
-    )
-
+    """Run one sync cycle. Returns number of matches updated + knockout teams assigned."""
     client = FootballDataClient()
+
+    # --- 1. Update match results ---
+    pending = await get_pending_matches()
     updated = 0
     scored = 0
 
+    if not pending:
+        logger.info("No pending matches to sync.")
+    else:
+        logger.info(
+            "Found %d pending match(es) (external IDs: %s)",
+            len(pending),
+            ", ".join(row["external_id"] for row in pending),
+        )
+
+        async with get_session() as session:
+            for db_row in pending:
+                ext_id = db_row["external_id"]
+
+                try:
+                    api_match = client.get(f"matches/{ext_id}")
+                except Exception:
+                    logger.exception("Failed to fetch match %s from API", ext_id)
+                    continue
+
+                new_status = STATUS_MAP.get(api_match["status"], "scheduled")
+                ft = api_match.get("score", {}).get("fullTime", {})
+                new_home = ft.get("home")
+                new_away = ft.get("away")
+
+                if new_status == "finished" and (new_home is None or new_away is None):
+                    logger.warning("Match %s finished but no scores yet, skipping", ext_id)
+                    continue
+
+                if new_status != "finished":
+                    new_home = None
+                    new_away = None
+
+                if new_status == db_row["status"] and new_home == db_row["home_score"] and new_away == db_row["away_score"]:
+                    continue
+
+                match_id = db_row["id"]
+                await session.execute(
+                    UPDATE_MATCH_RESULT,
+                    {"match_id": match_id, "status": new_status, "home_score": new_home, "away_score": new_away},
+                )
+                updated += 1
+
+                home_name = api_match.get("homeTeam", {}).get("tla", "?")
+                away_name = api_match.get("awayTeam", {}).get("tla", "?")
+                score_str = f"{new_home}-{new_away}" if new_home is not None else "no score"
+                logger.info("  Updated %s: %s vs %s → %s (%s)", ext_id, home_name, away_name, score_str, new_status)
+
+                if new_status == "finished":
+                    result = await session.execute(FIND_PREDICTIONS_FOR_MATCH, {"match_id": match_id})
+                    predictions = result.fetchall()
+
+                    for pred in predictions:
+                        exact, outcome = calculate_points(pred.pred_home, pred.pred_away, new_home, new_away)
+                        await session.execute(
+                            UPSERT_PREDICTION_SCORE,
+                            {"prediction_id": pred.prediction_id, "exact": exact, "outcome": outcome},
+                        )
+                        scored += 1
+
+                    logger.info("    Scored %d prediction(s)", len(predictions))
+
+        logger.info("Updated %d match(es), scored %d prediction(s).", updated, scored)
+
+    # --- 2. Assign knockout teams ---
+    assigned = await sync_knockout_teams(client)
+
+    logger.info("Sync complete: %d result(s), %d scored, %d knockout assignment(s).", updated, scored, assigned)
+    return updated + assigned
+
+
+async def sync_knockout_teams(client: FootballDataClient) -> int:
+    """Check knockout matches with placeholders and assign teams if the API already knows them."""
+    engine = get_engine()
+    async with engine.connect() as conn:
+        result = await conn.execute(FIND_KNOCKOUT_PLACEHOLDERS, {"provider": PROVIDER})
+        placeholder_matches = [dict(r._mapping) for r in result.fetchall()]
+    await engine.dispose()
+
+    if not placeholder_matches:
+        logger.info("No knockout matches with placeholders.")
+        return 0
+
+    logger.info("Found %d knockout match(es) with placeholders.", len(placeholder_matches))
+    assigned = 0
+
     async with get_session() as session:
-        for db_row in pending:
+        for db_row in placeholder_matches:
             ext_id = db_row["external_id"]
 
             try:
                 api_match = client.get(f"matches/{ext_id}")
             except Exception:
-                logger.exception("Failed to fetch match %s from API", ext_id)
+                logger.exception("Failed to fetch knockout match %s", ext_id)
                 continue
 
-            new_status = STATUS_MAP.get(api_match["status"], "scheduled")
-            ft = api_match.get("score", {}).get("fullTime", {})
-            new_home = ft.get("home")
-            new_away = ft.get("away")
+            home_team = api_match.get("homeTeam", {})
+            away_team = api_match.get("awayTeam", {})
+            home_tla = home_team.get("tla") if home_team.get("id") else None
+            away_tla = away_team.get("tla") if away_team.get("id") else None
 
-            if new_status == "finished" and (new_home is None or new_away is None):
-                logger.warning("Match %s finished but no scores yet, skipping", ext_id)
-                continue
-
-            if new_status != "finished":
-                new_home = None
-                new_away = None
-
-            if new_status == db_row["status"] and new_home == db_row["home_score"] and new_away == db_row["away_score"]:
+            if not home_tla and not away_tla:
                 continue
 
             match_id = db_row["id"]
-            await session.execute(
-                UPDATE_MATCH_RESULT,
-                {"match_id": match_id, "status": new_status, "home_score": new_home, "away_score": new_away},
-            )
-            updated += 1
+            parts = []
 
-            home_name = api_match.get("homeTeam", {}).get("tla", "?")
-            away_name = api_match.get("awayTeam", {}).get("tla", "?")
-            score_str = f"{new_home}-{new_away}" if new_home is not None else "no score"
-            logger.info("  Updated %s: %s vs %s → %s (%s)", ext_id, home_name, away_name, score_str, new_status)
+            if home_tla and db_row["home_placeholder"] is not None:
+                await session.execute(UPDATE_KNOCKOUT_HOME, {"match_id": match_id, "home_code": home_tla})
+                parts.append(home_tla)
 
-            if new_status == "finished":
-                result = await session.execute(FIND_PREDICTIONS_FOR_MATCH, {"match_id": match_id})
-                predictions = result.fetchall()
+            if away_tla and db_row["away_placeholder"] is not None:
+                await session.execute(UPDATE_KNOCKOUT_AWAY, {"match_id": match_id, "away_code": away_tla})
+                parts.append(away_tla)
 
-                for pred in predictions:
-                    exact, outcome = calculate_points(pred.pred_home, pred.pred_away, new_home, new_away)
-                    await session.execute(
-                        UPSERT_PREDICTION_SCORE,
-                        {"prediction_id": pred.prediction_id, "exact": exact, "outcome": outcome},
-                    )
-                    scored += 1
+            if parts:
+                assigned += 1
+                logger.info("  Assigned knockout match %s: %s", ext_id, " vs ".join(parts))
 
-                logger.info("    Scored %d prediction(s)", len(predictions))
-
-    logger.info("Updated %d match(es), scored %d prediction(s).", updated, scored)
-    return updated
+    logger.info("Assigned teams for %d knockout match(es).", assigned)
+    return assigned
 
 
 async def loop():
