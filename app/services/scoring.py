@@ -12,6 +12,7 @@ from app.repositories.tournament import TournamentRepository
 class ScoringService:
     EXACT_SCORE_POINTS = 3
     OUTCOME_POINTS = 1
+    ADVANCING_TEAM_POINTS = 1
     SPECIAL_PREDICTION_POINTS = 6
     NO_POINTS = 0
 
@@ -59,6 +60,7 @@ class ScoringService:
                 prediction=prediction,
                 real_home_score=match.home_score,
                 real_away_score=match.away_score,
+                real_advancing_team_id=match.advancing_team_id,
             )
             scores.append(prediction_score)
 
@@ -69,6 +71,7 @@ class ScoringService:
         prediction: Prediction,
         real_home_score: int,
         real_away_score: int,
+        real_advancing_team_id=None,
     ) -> PredictionScore:
         exact_score_points = self._calculate_exact_score_points(
             prediction_home_score=prediction.home_score,
@@ -85,6 +88,15 @@ class ScoringService:
             exact_score_points=exact_score_points,
         )
 
+        advancing_team_points = self._calculate_advancing_team_points(
+            prediction=prediction,
+            real_home_score=real_home_score,
+            real_away_score=real_away_score,
+            real_advancing_team_id=real_advancing_team_id,
+        )
+
+        total = exact_score_points + outcome_points + advancing_team_points
+
         existing_score = await self.scoring_repository.get_prediction_score(prediction.id)
 
         if existing_score is None:
@@ -92,15 +104,17 @@ class ScoringService:
                 prediction_id=prediction.id,
                 exact_score_points=exact_score_points,
                 outcome_points=outcome_points,
+                advancing_team_points=advancing_team_points,
                 group_position_points=0,
-                total_points=exact_score_points + outcome_points,
+                total_points=total,
             )
 
             return await self.scoring_repository.save_prediction_score(prediction_score)
 
         existing_score.exact_score_points = exact_score_points
         existing_score.outcome_points = outcome_points
-        existing_score.total_points = exact_score_points + outcome_points + existing_score.group_position_points
+        existing_score.advancing_team_points = advancing_team_points
+        existing_score.total_points = total + existing_score.group_position_points
 
         return await self.scoring_repository.update_prediction_score(existing_score)
 
@@ -139,6 +153,24 @@ class ScoringService:
         if predicted_outcome == real_outcome:
             return self.OUTCOME_POINTS
 
+        return self.NO_POINTS
+
+    def _calculate_advancing_team_points(
+        self,
+        prediction: Prediction,
+        real_home_score: int,
+        real_away_score: int,
+        real_advancing_team_id=None,
+    ) -> int:
+        """Bonus point for correctly predicting which team advances in a knockout draw."""
+        if (
+            prediction.advancing_team_id
+            and real_advancing_team_id
+            and prediction.home_score == prediction.away_score
+            and real_home_score == real_away_score
+            and prediction.advancing_team_id == real_advancing_team_id
+        ):
+            return self.ADVANCING_TEAM_POINTS
         return self.NO_POINTS
 
     def _get_outcome(self, home_score: int, away_score: int) -> str:

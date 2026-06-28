@@ -33,7 +33,8 @@ LOOP_INTERVAL = 300  # 5 minutes
 # --- DB queries ---
 
 FIND_PENDING = text("""
-    SELECT m.id, mel.external_id, m.status::text, m.home_score, m.away_score
+    SELECT m.id, mel.external_id, m.status::text, m.home_score, m.away_score,
+           m.home_team_id, m.away_team_id, m.stage
     FROM matches m
     JOIN match_external_links mel ON mel.match_id = m.id AND mel.provider = :provider
     WHERE m.status::text IN ('scheduled', 'live')
@@ -45,31 +46,37 @@ UPDATE_MATCH_RESULT = text("""
     UPDATE matches
     SET status = CAST(:status AS match_status),
         home_score = :home_score,
-        away_score = :away_score
+        away_score = :away_score,
+        advancing_team_id = :advancing_team_id
     WHERE id = :match_id
 """)
 
 FIND_PREDICTIONS_FOR_MATCH = text("""
     SELECT p.id AS prediction_id,
            p.home_score AS pred_home,
-           p.away_score AS pred_away
+           p.away_score AS pred_away,
+           p.advancing_team_id AS pred_advancing
     FROM predictions p
     WHERE p.match_id = :match_id
 """)
 
 UPSERT_PREDICTION_SCORE = text("""
-
     INSERT INTO prediction_scores (
         prediction_id,
         exact_score_points,
         outcome_points,
+        advancing_team_points,
         group_position_points,
         total_points
     )
-    VALUES (:prediction_id, :exact, :outcome, 0, CAST(:exact AS int) + CAST(:outcome AS int))
+    VALUES (
+        :prediction_id, :exact, :outcome, :advancing, 0,
+        CAST(:exact AS int) + CAST(:outcome AS int) + CAST(:advancing AS int)
+    )
     ON CONFLICT (prediction_id) DO UPDATE SET
         exact_score_points = EXCLUDED.exact_score_points,
         outcome_points = EXCLUDED.outcome_points,
+        advancing_team_points = EXCLUDED.advancing_team_points,
         total_points = EXCLUDED.total_points
 """)
 
@@ -96,22 +103,71 @@ UPDATE_KNOCKOUT_AWAY = text("""
     WHERE id = :match_id AND away_team_id IS NULL
 """)
 
+FIND_COMPLETED_GROUPS = text("""
+    SELECT m.group_letter, COUNT(*) AS finished
+    FROM matches m
+    WHERE m.stage = 'group' AND m.status::text = 'finished'
+      AND m.group_letter IS NOT NULL
+    GROUP BY m.group_letter
+    HAVING COUNT(*) = (
+        SELECT COUNT(*) FROM matches m2
+        WHERE m2.stage = 'group' AND m2.group_letter = m.group_letter
+    )
+""")
+
+FIND_UNSCORED_GROUP_PREDICTIONS = text("""
+    SELECT gp.id, gp.league_id, gp.group_letter,
+           gp.first_team_id, gp.second_team_id, gp.third_team_id, gp.fourth_team_id
+    FROM group_predictions gp
+    WHERE gp.group_letter = :group_letter AND gp.points_awarded IS NULL
+""")
+
+FIND_GROUP_STANDINGS = text("""
+    SELECT m.home_team_id, m.away_team_id, m.home_score, m.away_score
+    FROM matches m
+    WHERE m.stage = 'group' AND m.group_letter = :group_letter
+      AND m.status::text = 'finished'
+""")
+
+UPDATE_GROUP_PREDICTION_POINTS = text("""
+    UPDATE group_predictions SET points_awarded = :points WHERE id = :pred_id
+""")
+
 EXACT_SCORE_POINTS = 3
 OUTCOME_POINTS = 1
+ADVANCING_TEAM_POINTS = 1
 
 
-def calculate_points(pred_home: int, pred_away: int, real_home: int, real_away: int) -> tuple[int, int]:
-    """Returns (exact_score_points, outcome_points)."""
+def calculate_points(
+    pred_home: int,
+    pred_away: int,
+    real_home: int,
+    real_away: int,
+    pred_advancing: str | None = None,
+    real_advancing: str | None = None,
+) -> tuple[int, int, int]:
+    """Returns (exact_score_points, outcome_points, advancing_team_points)."""
+    # Advancing team bonus: only applies when both sides predicted/had a draw
+    advancing = 0
+    if (
+        pred_advancing
+        and real_advancing
+        and pred_home == pred_away  # user predicted draw
+        and real_home == real_away  # actual result was draw (90 min)
+        and str(pred_advancing) == str(real_advancing)
+    ):
+        advancing = ADVANCING_TEAM_POINTS
+
     if pred_home == real_home and pred_away == real_away:
-        return EXACT_SCORE_POINTS, 0
+        return EXACT_SCORE_POINTS, 0, advancing
 
     pred_outcome = (pred_home > pred_away) - (pred_home < pred_away)
     real_outcome = (real_home > real_away) - (real_home < real_away)
 
     if pred_outcome == real_outcome:
-        return 0, OUTCOME_POINTS
+        return 0, OUTCOME_POINTS, advancing
 
-    return 0, 0
+    return 0, 0, 0
 
 
 async def get_pending_matches() -> list[dict]:
@@ -153,13 +209,32 @@ async def sync_once() -> int:
                     continue
 
                 new_status = STATUS_MAP.get(api_match["status"], "scheduled")
-                ft = api_match.get("score", {}).get("fullTime", {})
-                new_home = ft.get("home")
-                new_away = ft.get("away")
+                score_data = api_match.get("score", {})
+                duration = score_data.get("duration", "REGULAR")
+
+                # Use regularTime (90 min) when available, otherwise fullTime
+                # regularTime only exists when duration is EXTRA_TIME or PENALTY_SHOOTOUT
+                if duration in ("EXTRA_TIME", "PENALTY_SHOOTOUT") and score_data.get("regularTime"):
+                    rt = score_data["regularTime"]
+                    new_home = rt.get("home")
+                    new_away = rt.get("away")
+                else:
+                    ft = score_data.get("fullTime", {})
+                    new_home = ft.get("home")
+                    new_away = ft.get("away")
 
                 if new_status == "finished" and (new_home is None or new_away is None):
                     logger.warning("Match %s finished but no scores yet, skipping", ext_id)
                     continue
+
+                # Determine advancing team (knockout only — group has check constraint)
+                advancing_team_id = None
+                if new_status == "finished" and db_row.get("stage") != "group":
+                    winner = score_data.get("winner")
+                    if winner == "HOME_TEAM":
+                        advancing_team_id = db_row.get("home_team_id")
+                    elif winner == "AWAY_TEAM":
+                        advancing_team_id = db_row.get("away_team_id")
 
                 if new_status != "finished":
                     new_home = None
@@ -171,24 +246,36 @@ async def sync_once() -> int:
                 match_id = db_row["id"]
                 await session.execute(
                     UPDATE_MATCH_RESULT,
-                    {"match_id": match_id, "status": new_status, "home_score": new_home, "away_score": new_away},
+                    {
+                        "match_id": match_id,
+                        "status": new_status,
+                        "home_score": new_home,
+                        "away_score": new_away,
+                        "advancing_team_id": advancing_team_id,
+                    },
                 )
                 updated += 1
 
                 home_name = api_match.get("homeTeam", {}).get("tla", "?")
                 away_name = api_match.get("awayTeam", {}).get("tla", "?")
                 score_str = f"{new_home}-{new_away}" if new_home is not None else "no score"
-                logger.info("  Updated %s: %s vs %s → %s (%s)", ext_id, home_name, away_name, score_str, new_status)
+                duration_str = f" ({duration})" if duration != "REGULAR" else ""
+                logger.info("  Updated %s: %s vs %s → %s (%s%s)", ext_id, home_name, away_name, score_str, new_status, duration_str)
 
                 if new_status == "finished":
                     result = await session.execute(FIND_PREDICTIONS_FOR_MATCH, {"match_id": match_id})
                     predictions = result.fetchall()
 
                     for pred in predictions:
-                        exact, outcome = calculate_points(pred.pred_home, pred.pred_away, new_home, new_away)
+                        exact, outcome, advancing = calculate_points(
+                            pred.pred_home, pred.pred_away,
+                            new_home, new_away,
+                            pred_advancing=str(pred.pred_advancing) if pred.pred_advancing else None,
+                            real_advancing=str(advancing_team_id) if advancing_team_id else None,
+                        )
                         await session.execute(
                             UPSERT_PREDICTION_SCORE,
-                            {"prediction_id": pred.prediction_id, "exact": exact, "outcome": outcome},
+                            {"prediction_id": pred.prediction_id, "exact": exact, "outcome": outcome, "advancing": advancing},
                         )
                         scored += 1
 
@@ -201,6 +288,85 @@ async def sync_once() -> int:
 
     logger.info("Sync complete: %d result(s), %d scored, %d knockout assignment(s).", updated, scored, assigned)
     return updated + assigned
+
+
+def compute_group_standings(match_rows: list[dict]) -> list:
+    """Compute group standings from match results. Returns list of team_ids in order."""
+    stats: dict[str, dict] = {}
+
+    for m in match_rows:
+        h_id, a_id = str(m["home_team_id"]), str(m["away_team_id"])
+        h_score, a_score = m["home_score"], m["away_score"]
+
+        for tid in (h_id, a_id):
+            if tid not in stats:
+                stats[tid] = {"id": tid, "pts": 0, "gd": 0, "gf": 0}
+
+        stats[h_id]["gf"] += h_score
+        stats[h_id]["gd"] += h_score - a_score
+        stats[a_id]["gf"] += a_score
+        stats[a_id]["gd"] += a_score - h_score
+
+        if h_score > a_score:
+            stats[h_id]["pts"] += 3
+        elif h_score < a_score:
+            stats[a_id]["pts"] += 3
+        else:
+            stats[h_id]["pts"] += 1
+            stats[a_id]["pts"] += 1
+
+    ranked = sorted(stats.values(), key=lambda s: (-s["pts"], -s["gd"], -s["gf"]))
+    return [r["id"] for r in ranked]
+
+
+async def score_completed_groups() -> int:
+    """Score group predictions for groups where all matches are finished."""
+    engine = get_engine()
+    async with engine.connect() as conn:
+        result = await conn.execute(FIND_COMPLETED_GROUPS)
+        completed = [dict(r._mapping) for r in result.fetchall()]
+    await engine.dispose()
+
+    if not completed:
+        logger.info("No completed groups to score.")
+        return 0
+
+    total_scored = 0
+
+    async with get_session() as session:
+        for row in completed:
+            group = row["group_letter"]
+
+            # Get unscored predictions for this group
+            result = await session.execute(FIND_UNSCORED_GROUP_PREDICTIONS, {"group_letter": group})
+            predictions = [dict(r._mapping) for r in result.fetchall()]
+
+            if not predictions:
+                continue
+
+            # Get actual standings
+            result = await session.execute(FIND_GROUP_STANDINGS, {"group_letter": group})
+            match_rows = [dict(r._mapping) for r in result.fetchall()]
+            actual_order = compute_group_standings(match_rows)
+
+            for pred in predictions:
+                predicted_order = [
+                    str(pred["first_team_id"]),
+                    str(pred["second_team_id"]),
+                    str(pred["third_team_id"]),
+                    str(pred["fourth_team_id"]),
+                ]
+                points = sum(1 for p, a in zip(predicted_order, actual_order) if p == a)
+                await session.execute(
+                    UPDATE_GROUP_PREDICTION_POINTS,
+                    {"pred_id": pred["id"], "points": points},
+                )
+                total_scored += 1
+
+            logger.info("  Group %s: scored %d prediction(s) (standings: %s)", group, len(predictions), actual_order[:2])
+
+    logger.info("Scored %d group prediction(s).", total_scored)
+    return total_scored
 
 
 async def sync_knockout_teams(client: FootballDataClient) -> int:
@@ -269,9 +435,12 @@ async def loop():
 def main():
     parser = argparse.ArgumentParser(description="Sync match results")
     parser.add_argument("--loop", action="store_true", help="Run continuously every 5 min")
+    parser.add_argument("--score-groups", action="store_true", help="Score completed group predictions and exit")
     args = parser.parse_args()
 
-    if args.loop:
+    if args.score_groups:
+        asyncio.run(score_completed_groups())
+    elif args.loop:
         asyncio.run(loop())
     else:
         asyncio.run(sync_once())
