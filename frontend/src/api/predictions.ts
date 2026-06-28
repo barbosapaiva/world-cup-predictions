@@ -8,7 +8,7 @@ export async function createPrediction(data: PredictionCreate): Promise<Predicti
 
 export async function updatePrediction(
   id: string,
-  data: { home_score?: number; away_score?: number }
+  data: { home_score?: number; away_score?: number; advancing_team_id?: string | null }
 ): Promise<Prediction> {
   const res = await api.patch<Prediction>(`/predictions/${id}`, data);
   return res.data;

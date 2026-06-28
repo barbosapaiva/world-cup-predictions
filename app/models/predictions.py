@@ -46,6 +46,7 @@ class PredictionScore(Base):
 
     exact_score_points: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     outcome_points: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    advancing_team_points: Mapped[int] = mapped_column(Integer, default=0, server_default="0", nullable=False)
     group_position_points: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     total_points: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 

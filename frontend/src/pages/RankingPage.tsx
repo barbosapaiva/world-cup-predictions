@@ -80,7 +80,8 @@ export default function RankingPage() {
                   <th className="px-3 py-2.5 text-left text-gray-500 font-medium text-xs">#</th>
                   <th className="px-3 py-2.5 text-left text-gray-500 font-medium text-xs">Nome</th>
                   <th className="px-3 py-2.5 text-right text-gray-500 font-medium text-xs">Total</th>
-                  <th className="px-3 py-2.5 text-right text-gray-500 font-medium text-xs hidden sm:table-cell">Pts Jogos</th>
+                  <th className="px-3 py-2.5 text-right text-gray-500 font-medium text-xs hidden sm:table-cell">Jogos</th>
+                  <th className="px-3 py-2.5 text-right text-gray-500 font-medium text-xs hidden sm:table-cell">Grupos</th>
                   <th className="px-3 py-2.5 text-right text-gray-500 font-medium text-xs hidden sm:table-cell">Especiais</th>
                   <th className="px-3 py-2.5 text-right text-gray-500 font-medium text-xs">Exatos</th>
                 </tr>
@@ -95,6 +96,7 @@ export default function RankingPage() {
                     <td className="px-3 py-2.5 font-medium text-gray-800">{entry.name}</td>
                     <td className="px-3 py-2.5 text-right font-bold text-emerald-600">{entry.total_points}</td>
                     <td className="px-3 py-2.5 text-right text-gray-400 hidden sm:table-cell">{entry.match_points}</td>
+                    <td className="px-3 py-2.5 text-right text-gray-400 hidden sm:table-cell">{entry.group_prediction_points}</td>
                     <td className="px-3 py-2.5 text-right text-gray-400 hidden sm:table-cell">{entry.special_prediction_points}</td>
                     <td className="px-3 py-2.5 text-right text-gray-400">{entry.exact_scores}</td>
                   </tr>

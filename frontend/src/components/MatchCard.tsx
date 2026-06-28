@@ -14,11 +14,13 @@ interface Props {
 export default function MatchCard({ match, teams, prediction, leagueId, userNames = {}, onPredictionSaved }: Props) {
   const [homeScore, setHomeScore] = useState(prediction?.home_score?.toString() ?? '');
   const [awayScore, setAwayScore] = useState(prediction?.away_score?.toString() ?? '');
+  const [advancingTeamId, setAdvancingTeamId] = useState<string | null>(prediction?.advancing_team_id ?? null);
 
   useEffect(() => {
     setHomeScore(prediction?.home_score?.toString() ?? '');
     setAwayScore(prediction?.away_score?.toString() ?? '');
-  }, [prediction?.home_score, prediction?.away_score]);
+    setAdvancingTeamId(prediction?.advancing_team_id ?? null);
+  }, [prediction?.home_score, prediction?.away_score, prediction?.advancing_team_id]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [showOthers, setShowOthers] = useState(false);
@@ -34,6 +36,10 @@ export default function MatchCard({ match, teams, prediction, leagueId, userName
 
   const isPast = new Date(match.submission_deadline) < new Date();
   const isFinished = match.status === 'finished';
+  const isKnockout = match.stage !== 'group';
+  const isDraw = homeScore !== '' && awayScore !== '' && homeScore === awayScore;
+  const needsAdvancing = isKnockout && isDraw;
+  const canSubmit = homeScore !== '' && awayScore !== '' && (!needsAdvancing || advancingTeamId !== null);
 
   const stageLabel: Record<string, string> = {
     group: `Grupo ${match.group_letter ?? ''}`,
@@ -46,14 +52,16 @@ export default function MatchCard({ match, teams, prediction, leagueId, userName
   };
 
   const handleSubmit = async () => {
-    if (homeScore === '' || awayScore === '') return;
+    if (!canSubmit) return;
     setError('');
     setSaving(true);
+    const advancing = needsAdvancing ? advancingTeamId ?? undefined : undefined;
     try {
       if (prediction) {
         await updatePrediction(prediction.id, {
           home_score: parseInt(homeScore),
           away_score: parseInt(awayScore),
+          advancing_team_id: advancing,
         });
       } else {
         await createPrediction({
@@ -61,6 +69,7 @@ export default function MatchCard({ match, teams, prediction, leagueId, userName
           match_id: match.id,
           home_score: parseInt(homeScore),
           away_score: parseInt(awayScore),
+          advancing_team_id: advancing,
         });
       }
       onPredictionSaved();
@@ -172,6 +181,9 @@ export default function MatchCard({ match, teams, prediction, leagueId, userName
             prediction ? (
               <span className="text-xs text-gray-500 bg-gray-100 px-2.5 py-1 rounded-lg">
                 {prediction.home_score} - {prediction.away_score}
+                {prediction.advancing_team_id && teams[prediction.advancing_team_id] && (
+                  <span className="text-gray-400"> ({teams[prediction.advancing_team_id].code})</span>
+                )}
               </span>
             ) : (
               <span className="text-[10px] text-gray-400 bg-gray-50 px-2.5 py-1 rounded-lg">Fechado</span>
@@ -185,7 +197,7 @@ export default function MatchCard({ match, teams, prediction, leagueId, userName
                 min="0"
                 max="20"
                 value={homeScore}
-                onChange={(e) => setHomeScore(e.target.value)}
+                onChange={(e) => { setHomeScore(e.target.value); if (e.target.value !== awayScore) setAdvancingTeamId(null); }}
                 className="w-10 h-9 text-center border border-gray-300 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
               />
               <span className="text-gray-300 font-bold text-sm">-</span>
@@ -196,7 +208,7 @@ export default function MatchCard({ match, teams, prediction, leagueId, userName
                 min="0"
                 max="20"
                 value={awayScore}
-                onChange={(e) => setAwayScore(e.target.value)}
+                onChange={(e) => { setAwayScore(e.target.value); if (homeScore !== e.target.value) setAdvancingTeamId(null); }}
                 className="w-10 h-9 text-center border border-gray-300 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
               />
             </>
@@ -212,10 +224,47 @@ export default function MatchCard({ match, teams, prediction, leagueId, userName
         </div>
       </div>
 
+      {/* Advancing team selector for knockout draws */}
+      {!isPast && !isFinished && needsAdvancing && homeTeam && awayTeam && (
+        <div className="mt-2">
+          <p className="text-[10px] text-gray-500 text-center mb-1.5">Quem segue em frente?</p>
+          <div className="flex gap-2 justify-center">
+            <button
+              type="button"
+              onClick={() => setAdvancingTeamId(homeTeam.id)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors ${
+                advancingTeamId === homeTeam.id
+                  ? 'bg-emerald-50 border-emerald-400 text-emerald-700'
+                  : 'bg-gray-50 border-gray-200 text-gray-600 active:bg-gray-100'
+              }`}
+            >
+              {homeFlag && <img src={homeFlag} alt="" className="w-4 h-3 object-cover rounded-sm" />}
+              {homeName}
+            </button>
+            <button
+              type="button"
+              onClick={() => setAdvancingTeamId(awayTeam.id)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors ${
+                advancingTeamId === awayTeam.id
+                  ? 'bg-emerald-50 border-emerald-400 text-emerald-700'
+                  : 'bg-gray-50 border-gray-200 text-gray-600 active:bg-gray-100'
+              }`}
+            >
+              {awayFlag && <img src={awayFlag} alt="" className="w-4 h-3 object-cover rounded-sm" />}
+              {awayName}
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* My prediction vs result */}
       {isFinished && prediction && (
         <div className={`mt-2 text-center text-[11px] font-medium px-2 py-1 rounded-lg border ${getPredictionStyle()}`}>
-          Aposta: {prediction.home_score} - {prediction.away_score} · {getPredictionLabel()}
+          Aposta: {prediction.home_score} - {prediction.away_score}
+          {prediction.advancing_team_id && teams[prediction.advancing_team_id] && (
+            <span> (segue: {teams[prediction.advancing_team_id].name})</span>
+          )}
+          {' · '}{getPredictionLabel()}
         </div>
       )}
 
@@ -224,7 +273,7 @@ export default function MatchCard({ match, teams, prediction, leagueId, userName
         <div className="mt-2 flex justify-center">
           <button
             onClick={handleSubmit}
-            disabled={saving || homeScore === '' || awayScore === ''}
+            disabled={saving || !canSubmit}
             className="text-xs bg-emerald-600 text-white px-6 py-2 rounded-lg active:bg-emerald-700 disabled:opacity-40 font-medium transition-colors"
           >
             {saving ? 'A guardar...' : prediction ? 'Atualizar' : 'Submeter'}
@@ -237,6 +286,9 @@ export default function MatchCard({ match, teams, prediction, leagueId, userName
       {prediction && !isPast && !isFinished && (
         <p className="text-emerald-600 text-[11px] text-center mt-1.5 font-medium">
           Aposta: {prediction.home_score} - {prediction.away_score}
+          {prediction.advancing_team_id && teams[prediction.advancing_team_id] && (
+            <span> (segue: {teams[prediction.advancing_team_id].name})</span>
+          )}
         </p>
       )}
 
@@ -261,6 +313,9 @@ export default function MatchCard({ match, teams, prediction, leagueId, userName
                     <span className="text-gray-700">{userNames[pred.user_id] ?? 'Utilizador'}</span>
                     <span className={getOtherPredStyle(pred)}>
                       {pred.home_score} - {pred.away_score}
+                      {pred.advancing_team_id && teams[pred.advancing_team_id] && (
+                        <span className="text-gray-400 font-normal"> ({teams[pred.advancing_team_id].code})</span>
+                      )}
                     </span>
                   </div>
                 ))
