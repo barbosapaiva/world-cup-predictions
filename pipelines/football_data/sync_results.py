@@ -191,6 +191,7 @@ async def sync_once() -> int:
 
     if not pending:
         logger.info("No pending matches to sync.")
+        return 0
     else:
         logger.info(
             "Found %d pending match(es) (external IDs: %s)",
@@ -283,7 +284,6 @@ async def sync_once() -> int:
 
         logger.info("Updated %d match(es), scored %d prediction(s).", updated, scored)
 
-    # --- 2. Assign knockout teams ---
     assigned = await sync_knockout_teams(client)
 
     logger.info("Sync complete: %d result(s), %d scored, %d knockout assignment(s).", updated, scored, assigned)
