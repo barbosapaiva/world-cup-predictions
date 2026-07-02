@@ -23,7 +23,19 @@ def upgrade() -> None:
         "prediction_scores",
         sa.Column("advancing_team_points", sa.Integer(), nullable=False, server_default="0"),
     )
+    op.drop_constraint("chk_total_points", "prediction_scores", type_="check")
+    op.create_check_constraint(
+        "chk_total_points",
+        "prediction_scores",
+        "total_points = exact_score_points + outcome_points + advancing_team_points + group_position_points",
+    )
 
 
 def downgrade() -> None:
+    op.drop_constraint("chk_total_points", "prediction_scores", type_="check")
+    op.create_check_constraint(
+        "chk_total_points",
+        "prediction_scores",
+        "total_points = exact_score_points + outcome_points + group_position_points",
+    )
     op.drop_column("prediction_scores", "advancing_team_points")
