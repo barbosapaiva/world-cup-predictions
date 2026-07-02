@@ -257,6 +257,12 @@ export default function MatchCard({ match, teams, prediction, leagueId, userName
         </div>
       )}
 
+      {isFinished && isKnockout && match.home_score !== null && match.away_score !== null && match.home_score === match.away_score && match.advancing_team_id && teams[match.advancing_team_id] && (
+        <p className="text-[10px] text-gray-400 text-center mt-1">
+          Resultado aos 90' · Segue: {teams[match.advancing_team_id].name}
+        </p>
+      )}
+
       {/* My prediction vs result */}
       {isFinished && prediction && (
         <div className={`mt-2 text-center text-[11px] font-medium px-2 py-1 rounded-lg border ${getPredictionStyle()}`}>
